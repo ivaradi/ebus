@@ -6,6 +6,7 @@ ebus_SOURCES=\
 	EBUS.cc			\
 	BusHandler.cc		\
 	MessageHandler.cc 	\
+	Log.cc			\
 	OSError.cc
 
 noinst_HEADERS=\
@@ -14,4 +15,5 @@ noinst_HEADERS=\
 	BusHandler.h		\
 	MessageHandler.h	\
 	OSError.h		\
+	Log.h			\
 	TimeoutException.h

@@ -19,6 +19,7 @@
 //------------------------------------------------------------------------------
 
 #include "EBUS.h"
+#include "Log.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -60,8 +61,8 @@ void EBUS::open() throw(OSError)
         try {
             setupPort(devicePath);
         } catch(const OSError& e) {
-            printf("EBUS::open: failed to open port, waiting: %s\n",
-                   e.what());
+            Log::info("EBUS::open: failed to open port, waiting: %s",
+                      e.what());
             sleep(1);
         }
     }
@@ -83,21 +84,25 @@ uint8_t EBUS::read() throw(OSError)
 bool EBUS::readMaybe(uint8_t& symbol, unsigned timeout) throw(OSError)
 {
     struct epoll_event event;
-    int numDesriptors = epoll_wait(epollFD, &event, 1, timeout);
-    if (numDesriptors<0) {
-        throw OSError("EBUS::readMaybe: epoll_wait");
-    } else if (numDesriptors==0) {
-        return false;
-    } else {
-        if ((event.events&(EPOLLHUP|EPOLLERR))!=0) {
-            closeOnError("EBUS::readMaybe: EPOLLHUP or EPOLLERR occured");
-        } else if ((event.events&EPOLLIN)!=0) {
-            if (::read(portFD, &symbol, 1)<0) {
-                closeOnError("EBUS::read: read");
+    while (true) {
+        int numDesriptors = epoll_wait(epollFD, &event, 1, timeout);
+        if (numDesriptors<0) {
+            if (errno!=EINTR) {
+                throw OSError("EBUS::readMaybe: epoll_wait");
             }
-            return true;
+        } else if (numDesriptors==0) {
+            return false;
         } else {
-            closeOnError("EBUS::readMaybe: no EPOLLIN event");
+            if ((event.events&(EPOLLHUP|EPOLLERR))!=0) {
+                closeOnError("EBUS::readMaybe: EPOLLHUP or EPOLLERR occured");
+            } else if ((event.events&EPOLLIN)!=0) {
+                if (::read(portFD, &symbol, 1)<0) {
+                    closeOnError("EBUS::read: read");
+                }
+                return true;
+            } else {
+                closeOnError("EBUS::readMaybe: no EPOLLIN event");
+            }
         }
     }
     return false;

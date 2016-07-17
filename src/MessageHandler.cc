@@ -22,6 +22,9 @@
 
 #include "BusHandler.h"
 #include "Telegram.h"
+#include "Log.h"
+
+#include <cstring>
 
 //------------------------------------------------------------------------------
 
@@ -32,11 +35,11 @@ void MessageHandler::run() throw (OSError)
     bool synPending = false;
     while(true) {
         if (!synPending) {
-            printf("Waiting for signal...\n");
+            Log::info("Waiting for signal...");
             while(!busHandler.waitSignal(1000)) {
-                printf("Still no signal...\n");
+                Log::info("Still no signal...");
             }
-            printf("Signal detected\n");
+            Log::info("Signal detected");
         }
 
         bool dumpData = false;
@@ -46,12 +49,12 @@ void MessageHandler::run() throw (OSError)
                 auto source = BusHandler::SYMBOL_SYN;
                 while (source == BusHandler::SYMBOL_SYN) {
                     if (!busHandler.nextRawSymbolMaybe(source)) {
-                        printf("Timeout waiting for a message...\n");
+                        Log::info("Timeout waiting for a message...");
                     }
                 }
 
                 if (!BusHandler::isMasterAddress(source)) {
-                    printf("First byte after SYN is not master address!\n");
+                    Log::info("The first byte after SYN is not master address!");
                     continue;
                 }
 
@@ -59,10 +62,10 @@ void MessageHandler::run() throw (OSError)
             }
 
         } catch(const TimeoutException&) {
-            printf("Timeout occurred\n");
+            Log::info("Timeout occurred");
             dumpData = true;
         } catch(const SYNException&) {
-            printf("Unexpected SYN symbol!\n");
+            Log::info("Unexpected SYN symbol!");
             synPending = true;
             dumpData = true;
         }
@@ -70,11 +73,17 @@ void MessageHandler::run() throw (OSError)
         if (dumpData) {
             size_t historySize = busHandler.getHistory(history);
             if (historySize>0) {
-                printf("  the bytes received so far:");
+                char buffer[3*historySize + 32];
+                strcpy(buffer, "  the bytes received so far:");
+                size_t bufferLength = strlen(buffer);
+
                 for(size_t i = 0; i<historySize; ++i) {
-                    printf(" %02x", history[i]);
+                    bufferLength += snprintf(buffer + bufferLength,
+                                             sizeof(buffer) - bufferLength,
+                                             " %02x", history[i]);
                 }
-                printf("\n");
+
+                Log::info("%s", buffer);
             }
         }
     }
@@ -120,12 +129,12 @@ void MessageHandler::readTelegram(symbol_t source)
         try {
             ack = busHandler.nextSymbol();
         } catch(const SYNException&) {
-            fprintf(stderr, "Missing ACK symbol, SYN received instead\n");
+            Log::error("Missing ACK symbol, SYN received instead");
             received(telegram);
             throw;
         }
         if (ack!=BusHandler::SYMBOL_ACK) {
-            fprintf(stderr, "No ACK at the end of the message: %02x\n", ack);
+            Log::error("No ACK at the end of the message: %02x", ack);
         }
         telegram.acknowledgement = Telegram::symbol2ack(ack);
     }
@@ -158,7 +167,7 @@ void MessageHandler::readReply(Telegram& telegram)
 
     auto replyACK = busHandler.nextSymbol();
     if (replyACK!=BusHandler::SYMBOL_ACK) {
-        fprintf(stderr, "Not ACK at the end of the slave reply: %02x\n", replyACK);
+        Log::error("No ACK at the end of the slave reply: %02x", replyACK);
     }
     telegram.masterAcknowledgement = Telegram::symbol2ack(replyACK);
 }

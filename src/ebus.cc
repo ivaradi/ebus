@@ -24,12 +24,14 @@
 #include "Telegram.h"
 #include "DataSymbolReader.h"
 #include "Data.h"
+#include "Log.h"
 
 #include <fstream>
 
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <csignal>
 
 #include <termios.h>
 #include <fcntl.h>
@@ -141,11 +143,6 @@ private:
     static std::string address2String(symbol_t symbol);
 
     /**
-     * Get the string representation of the current time.
-     */
-    static std::string getTimestamp();
-
-    /**
      * Convert the given bitfield into a string.
      */
     static std::string bit2String(BitData bitData,
@@ -240,7 +237,7 @@ void WebData::write()
 
         ::rename(tmpPath.c_str(), targetPath.c_str());
     } catch(const exception& e) {
-        fprintf(stderr, "Failed to write web data: %s\n", e.what());
+        Log::error("Failed to write web data: %s", e.what());
     }
 }
 
@@ -266,18 +263,6 @@ string MainMessageHandler::address2String(symbol_t symbol)
     char buffer[4];
     snprintf(buffer, sizeof(buffer), "%02x", symbol);
     return buffer;
-}
-
-//------------------------------------------------------------------------------
-
-string MainMessageHandler::getTimestamp()
-{
-    time_t t = time(0);
-    struct tm lt;
-    localtime_r(&t, &lt);
-    char timeStr[32];
-    strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &lt);
-    return timeStr;
 }
 
 //------------------------------------------------------------------------------
@@ -309,7 +294,7 @@ void MainMessageHandler::received(const Telegram& telegram)
             dumpTelegram(telegram);
         }
     } catch(const OverrunException&) {
-        printf("!!! Overrun while processing telegram:");
+        Log::error("!!! Overrun while processing telegram:");
         dumpTelegram(telegram);
     }
 }
@@ -355,48 +340,81 @@ string MainMessageHandler::bit2String(BitData bitData,
 
 void MainMessageHandler::dumpTelegram(const Telegram& telegram)
 {
-    printf("[%s] Telegram: %s->%s %02x%02x [",
-           getTimestamp().c_str(),
-           address2String(telegram.source).c_str(),
-           address2String(telegram.destination).c_str(),
-           telegram.primaryCommand, telegram.secondaryCommand);
+    // FIXME: either make logging more intelligent or provide some better way
+    // to produce such a buffer.
+    char buffer[4096];
+    size_t bufferLength = 0;
+
+    bufferLength +=
+        snprintf(buffer + bufferLength, sizeof(buffer) - bufferLength,
+                 "Telegram: %s->%s %02x%02x [",
+                 address2String(telegram.source).c_str(),
+                 address2String(telegram.destination).c_str(),
+                 telegram.primaryCommand, telegram.secondaryCommand);
     for(unsigned i = 0; i<telegram.numDataSymbols; ++i) {
-        if (i>0) printf(" ");
-        printf("%02x", telegram.dataSymbols[i]);
+        if (i>0) bufferLength += snprintf(buffer + bufferLength,
+                                          sizeof(buffer) - bufferLength,
+                                          " ");
+        bufferLength += snprintf(buffer + bufferLength,
+                                 sizeof(buffer) - bufferLength,
+                                 "%02x", telegram.dataSymbols[i]);
     }
-    printf("]");
+    bufferLength += snprintf(buffer + bufferLength,
+                             sizeof(buffer) - bufferLength,
+                             "]");
     if (!telegram.crcOK) {
-        printf(" (CRC mismatch)");
+        bufferLength += snprintf(buffer + bufferLength,
+                                 sizeof(buffer) - bufferLength,
+                                 " (CRC mismatch)");
     }
     if (!BusHandler::isBroadcastAddress(telegram.destination) &&
         telegram.acknowledgement!=Telegram::ACK)
     {
         if (telegram.acknowledgement==Telegram::NONE) {
-            printf(" (no acknowledgement)");
+            bufferLength += snprintf(buffer + bufferLength,
+                                     sizeof(buffer) - bufferLength,
+                                     " (no acknowledgement)");
         } else {
-            printf(" (negative acknowledgement)");
+            bufferLength += snprintf(buffer + bufferLength,
+                                     sizeof(buffer) - bufferLength,
+                                     " (negative acknowledgement)");
         }
     }
-    printf("\n");
+    Log::info("%s", buffer);
 
     if (BusHandler::isSlaveAddress(telegram.destination) &&
         telegram.acknowledgement==Telegram::ACK)
     {
-        printf("  ==> [");
+        bufferLength = 0;
+        bufferLength += snprintf(buffer + bufferLength,
+                                 sizeof(buffer) - bufferLength,
+                                 "  ==> [");
         for(unsigned i = 0; i<telegram.numReplyDataSymbols; ++i) {
-            if (i>0) printf(" ");
-            printf("%02x", telegram.replyDataSymbols[i]);
+            if (i>0) bufferLength += snprintf(buffer + bufferLength,
+                                              sizeof(buffer) - bufferLength,
+                                              " ");
+            bufferLength += snprintf(buffer + bufferLength,
+                                     sizeof(buffer) - bufferLength,
+                                     "%02x", telegram.replyDataSymbols[i]);
         }
-        printf("]");
+        bufferLength += snprintf(buffer + bufferLength,
+                                 sizeof(buffer) - bufferLength,
+                                 "]");
         if (!telegram.replyCRCOK) {
-            printf(" (CRC mismatch)");
+            bufferLength += snprintf(buffer + bufferLength,
+                                     sizeof(buffer) - bufferLength,
+                                     " (CRC mismatch)");
         }
         if (telegram.acknowledgement==Telegram::NONE) {
-            printf(" (no acknowledgement)");
+            bufferLength += snprintf(buffer + bufferLength,
+                                     sizeof(buffer) - bufferLength,
+                                     " (no acknowledgement)");
         } else if (telegram.acknowledgement==Telegram::NACK) {
-            printf(" (negative acknowledgement)");
+            bufferLength += snprintf(buffer + bufferLength,
+                                     sizeof(buffer) - bufferLength,
+                                     " (negative acknowledgement)");
         }
-        printf("\n");
+        Log::info("%s", buffer);
     }
 }
 
@@ -430,15 +448,14 @@ void MainMessageHandler::process0503(const Telegram& telegram)
             bit2String(burnerControlState, "LDW", "GDW", "WS",
                        "Flame", "Valve1", "Valve2", "UWP", "Alarm");
 
-        printf("[%s] %s->%s BC Op. Data block 01: %s, state: %s, min-max boiler perf: %u%%, boiler temp: %.2f°C, return water temp: %u°C, boiler temp2: %u°C, outside temp: %d°C\n",
-               getTimestamp().c_str(),
-               address2String(telegram.source).c_str(),
-               address2String(telegram.destination).c_str(),
-               statusStr, burnerControlStateStr.c_str(),
-               minMaxBoilerPerf.get(),
-               boilerTemp.get(),
-               returnWaterTemp.get(),
-               boilerTemp2.get(), outsideTemp.get());
+        Log::info("%s->%s BC Op. Data block 01: %s, state: %s, min-max boiler perf: %u%%, boiler temp: %.2f°C, return water temp: %u°C, boiler temp2: %u°C, outside temp: %d°C",
+                  address2String(telegram.source).c_str(),
+                  address2String(telegram.destination).c_str(),
+                  statusStr, burnerControlStateStr.c_str(),
+                  minMaxBoilerPerf.get(),
+                  boilerTemp.get(),
+                  returnWaterTemp.get(),
+                  boilerTemp2.get(), outsideTemp.get());
 
         if (telegram.source==0x03 &&
             BusHandler::isBroadcastAddress(telegram.destination))
@@ -461,13 +478,12 @@ void MainMessageHandler::process0503(const Telegram& telegram)
         Data1c jointLeadWaterTemp(reader);
         ByteData _available(reader);
 
-        printf("[%s] %s->%s BC Op. Data block 02: exhaust temp: %.2f°C, BWW lead water temp: %.1f°C, eff. boiler perf: %.1f%%, joint lead water temp: %.1f°C\n",
-               getTimestamp().c_str(),
-               address2String(telegram.source).c_str(),
-               address2String(telegram.destination).c_str(),
-               exhaustTemp.get(),
-               bwwLeadWaterTemp.get(), effBoilerPerf.get(),
-               jointLeadWaterTemp.get());
+        Log::info("%s->%s BC Op. Data block 02: exhaust temp: %.2f°C, BWW lead water temp: %.1f°C, eff. boiler perf: %.1f%%, joint lead water temp: %.1f°C",
+                  address2String(telegram.source).c_str(),
+                  address2String(telegram.destination).c_str(),
+                  exhaustTemp.get(),
+                  bwwLeadWaterTemp.get(), effBoilerPerf.get(),
+                  jointLeadWaterTemp.get());
     } else {
         dumpTelegram(telegram);
     }
@@ -533,17 +549,16 @@ void MainMessageHandler::process0507(const Telegram& telegram)
         fuelTypeStr = " (oil)";
     }
 
-    printf("[%s] %s->%s RC to BC Oper. Data: heatRequest: %s, action: %s, boiler target temp: %.2f°C, boiler target pressure: %.2fbar, setting degree: %.1f%%, service water target temp: %.2f°C, fuel type: 0x%02x%s\n",
-           getTimestamp().c_str(),
-           address2String(telegram.source).c_str(),
-           address2String(telegram.destination).c_str(),
-           heatRequestStr.c_str(),
-           actionStr.c_str(),
-           boilerTargetTemp.get(),
-           boilerTargetPressure.get(),
-           settingDegree.get(),
-           serviceWaterTargetTemp.get(),
-           fuelType.get(), fuelTypeStr.c_str());
+    Log::info("%s->%s RC to BC Oper. Data: heatRequest: %s, action: %s, boiler target temp: %.2f°C, boiler target pressure: %.2fbar, setting degree: %.1f%%, service water target temp: %.2f°C, fuel type: 0x%02x%s",
+              address2String(telegram.source).c_str(),
+              address2String(telegram.destination).c_str(),
+              heatRequestStr.c_str(),
+              actionStr.c_str(),
+              boilerTargetTemp.get(),
+              boilerTargetPressure.get(),
+              settingDegree.get(),
+              serviceWaterTargetTemp.get(),
+              fuelType.get(), fuelTypeStr.c_str());
 }
 
 //------------------------------------------------------------------------------
@@ -582,13 +597,12 @@ void MainMessageHandler::process0700(const Telegram& telegram)
         weekDayStr = str;
     }
 
-    printf("[%s] %s->%s Date/Time: outside temp: %.2f°C, 20%02u-%02u-%02u (%s) %02u:%02u:%02u\n",
-           getTimestamp().c_str(),
-           address2String(telegram.source).c_str(),
-           address2String(telegram.destination).c_str(),
-           outsideTemp.get(),
-           year.get(), month.get(), day.get(), weekDayStr.c_str(),
-           hours.get(), minutes.get(), seconds.get());
+    Log::info("%s->%s Date/Time: outside temp: %.2f°C, 20%02u-%02u-%02u (%s) %02u:%02u:%02u",
+              address2String(telegram.source).c_str(),
+              address2String(telegram.destination).c_str(),
+              outsideTemp.get(),
+              year.get(), month.get(), day.get(), weekDayStr.c_str(),
+              hours.get(), minutes.get(), seconds.get());
 
     if (telegram.source==0x30 &&
         BusHandler::isBroadcastAddress(telegram.destination))
@@ -624,13 +638,12 @@ void MainMessageHandler::process0800(const Telegram& telegram)
     string statusStr = bit2String(status, "BWR_active",
                                   "heater_circuit_active");
 
-    printf("[%s] %s->%s RC Target Values: boiler temp: %.2f°C, outside temp: %.2f°C, service water temp: %.2f°C, force performance: %d%%, status:%s\n",
-           getTimestamp().c_str(),
-           address2String(telegram.source).c_str(),
-           address2String(telegram.destination).c_str(),
-           boilerTargetTemp.get(), outsideTemp.get(),
-           serviceWaterTargetTemp.get(), forcePerformance.get(),
-           statusStr.c_str());
+    Log::info("%s->%s RC Target Values: boiler temp: %.2f°C, outside temp: %.2f°C, service water temp: %.2f°C, force performance: %d%%, status:%s",
+              address2String(telegram.source).c_str(),
+              address2String(telegram.destination).c_str(),
+              boilerTargetTemp.get(), outsideTemp.get(),
+              serviceWaterTargetTemp.get(), forcePerformance.get(),
+              statusStr.c_str());
 
     if (telegram.source==0xf1 &&
         BusHandler::isBroadcastAddress(telegram.destination))
@@ -660,12 +673,11 @@ void MainMessageHandler::process5014(const Telegram& telegram)
 
     string statusStr = bit2String(status);
 
-    printf("[%s] %s->%s Control data (5014): boiler temp: %.2f°C, room temp: %.2f°C, mixer temp: %.2f°C, status:%s\n",
-           getTimestamp().c_str(),
-           address2String(telegram.source).c_str(),
-           address2String(telegram.destination).c_str(),
-           boilerTargetTemp.get(), roomTemp.get(), mixerTemp.get(),
-           statusStr.c_str());
+    Log::info("%s->%s Control data (5014): boiler temp: %.2f°C, room temp: %.2f°C, mixer temp: %.2f°C, status:%s",
+              address2String(telegram.source).c_str(),
+              address2String(telegram.destination).c_str(),
+              boilerTargetTemp.get(), roomTemp.get(), mixerTemp.get(),
+              statusStr.c_str());
 
     bool modified = false;
 
@@ -676,15 +688,103 @@ void MainMessageHandler::process5014(const Telegram& telegram)
 
 //------------------------------------------------------------------------------
 
-int main()
+int usage(bool error, char* argv[])
 {
-    // FIXME: use configuration
-    EBUS ebus("/dev/ttyUSB0");
+    FILE* f = error ? stderr : stdout;
+
+    fprintf(f, "Usage: %s [-d <device file>] [-w <web file path>] [-f] [-l <log file path>] [-p <PID file path>]\n",
+            argv[0]);
+    fprintf(f, "  where\n");
+    fprintf(f, "    -d <device file>: the device file to use (default: /dev/ttyUSB0)\n");
+    fprintf(f, "    -w <web file path>: the JSON file to put the data into (default: ebus.json)\n");
+    fprintf(f, "    -f: run in the foreground\n");
+    fprintf(f, "    -l <log file path>: the path of the log file. If not given, no logging is done to a file\n");
+    fprintf(f, "    -p <PID file path>: the path of the PID file (default: ebus.pid)\n");
+
+    return error ? 1 : 0;
+}
+
+//------------------------------------------------------------------------------
+
+void handleHUP(int /*signo*/)
+{
+    Log::reopenFile();
+}
+
+//------------------------------------------------------------------------------
+
+int main(int argc, char* argv[])
+{
+    int opt;
+
+    string deviceFile("/dev/ttyUSB0");
+    string webFilePath("ebus.json");
+    string pidFilePath("ebus.pid");
+    bool foreground = false;
+    string logFilePath;
+
+
+    while((opt = getopt(argc, argv, "d:w:fl:hp:")) != -1) {
+        switch (opt) {
+          case 'd':
+            deviceFile = optarg;
+            break;
+          case 'w':
+            webFilePath = optarg;
+            break;
+          case 'f':
+            foreground = true;
+            break;
+          case 'l':
+            logFilePath = optarg;
+            break;
+          case 'p':
+            pidFilePath = optarg;
+            break;
+          case 'h':
+            return usage(false, argv);
+            break;
+          default:
+            return usage(true, argv);
+        }
+    }
+
+    if (!logFilePath.empty()) {
+        Log::enableFile(logFilePath);
+
+        struct sigaction sa;
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_handler = &handleHUP;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = SA_RESTART;
+        sa.sa_restorer = 0;
+
+        //signal(SIGHUP, &handleHUP);
+        if (sigaction(SIGHUP, &sa, 0)<0) {
+            perror("sigaction");
+            return 3;
+        }
+    }
+
+    if (foreground) {
+        Log::enableStdout();
+    } else {
+        if (daemon(0, 0)<0) {
+            perror("daemon");
+            return 2;
+        }
+    }
+
+    FILE* pidFile = fopen(pidFilePath.c_str(), "wt");
+    if (pidFile!=0) {
+        fprintf(pidFile, "%d\n", getpid());
+        fclose(pidFile);
+    }
+
+    EBUS ebus(deviceFile);
     try {
         BusHandler busHandler(ebus);
-        MainMessageHandler messageHandler(busHandler,
-                                          // FIXME: use configuration
-                                          "/mnt/lxc/web/rootfs/home/ivaradi/www/homeauto/data/ebus.json");
+        MainMessageHandler messageHandler(busHandler, webFilePath);
 
         while(true) {
             try {
@@ -692,13 +792,13 @@ int main()
 
                 messageHandler.run();
             } catch(const OSError& e) {
-                fprintf(stderr, "OSError: %s, trying to open the port again\n",
-                        e.what());
+                Log::error("OSError: %s, trying to open the port again",
+                           e.what());
             }
         }
         return 0;
     } catch(const exception& e) {
-        fprintf(stderr, "Exception caught: %s\n", e.what());
+        Log::error("Exception caught: %s", e.what());
         return 1;
     }
 }
