@@ -1,0 +1,213 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+	.heading {
+	    padding-left: 10px; 
+	    padding-right: 10px; 
+	    background: deepskyblue; 
+	    color: white;
+	    text-align: center;
+	}
+
+	.data {
+	    font-size: 300%; 
+	    font-weight: bold;
+	    padding-left: 10px; 
+	    padding-right: 10px;
+	    text-align: center;
+	    background: lightgreen;
+	}
+    </style>
+    <title>Otthon</title>
+</head>
+
+<body>
+<div align="center">
+
+<h1>Gézuka</h1>
+
+<table>
+    <tr>
+	<td align="center"><h2>Kazán</h2></td>
+    </tr>
+    </tr>
+	<td>
+	    <table style="border-spacing: 0px; border: thick solid lightblue; padding: 0px">
+		<tr>
+		    <td class="heading" style="border-right: thick solid lightblue;">Hibakód</td>
+		    <td class="heading" colspan="2">Dátum, idő</td>
+		</tr>
+		<tr>
+		    <td id="errorCode" class="data" style="border-right: thick solid lightblue; border-bottom: thick solid lightblue;">000</td>
+		    <td id="lastTime" class="data" style="border-bottom: thick solid lightblue; font-size: 200%" colspan="2">2016-07-16 15:00:10</td>
+		</tr>
+		<tr>
+		    <td class="heading" style="border-right: thick solid lightblue;">Külső hőmérséklet</td>
+		    <td class="heading" style="border-right: thick solid lightblue;">Külső átlaghőm.</td>
+		    <td class="heading">Szoba hőmérséklet</td>
+		</tr>
+		<tr>
+		    <td id="outsideTemp" class="data" style="border-right: thick solid lightblue;">23°C</td>
+		    <td id="outsideTempAvg" class="data" style="border-right: thick solid lightblue;">22.0°C</td>
+		    <td id="roomTemp" class="data">18.2°C</td>
+		</tr>
+		<tr>
+		    <td class="heading" style="border-right: thick solid lightblue;">Fűtés célhőmérséklet</td>
+		    <td class="heading" style="border-right: thick solid lightblue;">Vízhőmérséklet</td>
+		    <td class="heading">Visszatérő vízhőm.</td>
+		</tr>
+		<tr>
+		    <td id="boilerTargetTemp" class="data" style="border-right: thick solid lightblue;">23°C</td>
+		    <td id="boilerTemp" class="data" style="border-right: thick solid lightblue;">22.0°C</td>
+		    <td id="returnWaterTemp" class="data">18.2°C</td>
+		</tr>
+		<tr>
+		    <td class="heading" style="border-right: thick solid lightblue;">Melegvíz célhőmérséklet</td>
+		    <td class="heading" style="border-right: thick solid lightblue;">Melegvíz hőmérséklet</td>
+		    <td class="heading"></td>
+		</tr>
+		<tr>
+		    <td id="serviceWaterTargetTemp" class="data" style="border-right: thick solid lightblue;">23°C</td>
+		    <td id="serviceWaterTemp" class="data" style="border-right: thick solid lightblue;">22°C</td>
+		    <td class="data"></td>
+		</tr>
+	    </table>
+	</td>
+    </tr>
+</table>
+
+</div>
+
+</body>
+<script>
+
+errorCode = document.getElementById("errorCode");
+lastTime = document.getElementById("lastTime");
+
+outsideTemp = document.getElementById("outsideTemp");
+outsideTempAvg = document.getElementById("outsideTempAvg");
+roomTemp = document.getElementById("roomTemp");
+
+boilerTargetTemp = document.getElementById("boilerTargetTemp");
+boilerTemp = document.getElementById("boilerTemp");
+returnWaterTemp = document.getElementById("returnWaterTemp");
+
+serviceWaterTargetTemp = document.getElementById("serviceWaterTargetTemp");
+serviceWaterTemp = document.getElementById("serviceWaterTemp");
+
+var colorData = [
+    {temp: 22, red: 128, green: 255, blue: 128 },
+    {temp: 26, red: 255, green: 255, blue: 128 },
+    {temp: 32, red: 180, green: 0, blue: 0 }
+];
+
+color2str = function(red, green, blue) {
+    return "rgb(" + red.toFixed() + ", " + green.toFixed() + ", " + blue.toFixed() + ")";
+}
+
+temp2color = function(temp) {
+    beforeData = null;
+    afterData = null;
+
+    for(var i = 0; i<colorData.length; i++) {
+        cd = colorData[i]
+        if (cd.temp>=temp) {
+            afterData = cd;
+            break;
+        } else {
+            beforeData = cd;
+        }
+    }
+
+    if (afterData===null) {
+        if (beforeData===null) {
+            return color2str(0, 0, 0);
+        } else {
+            return color2str(beforeData.red, beforeData.green, beforeData.blue);
+        }
+    } else if (beforeData===null) {
+        return color2str(afterData.red, afterData.green, afterData.blue);
+    } else {
+        var rate = (temp - beforeData.temp) /
+            (afterData.temp - beforeData.temp);
+        var red = beforeData.red + rate * (afterData.red - beforeData.red);
+        var green = beforeData.green + rate * (afterData.green - beforeData.green);
+        var blue = beforeData.blue + rate * (afterData.blue - beforeData.blue);
+        return color2str(red, green, blue)
+    }
+}
+
+processData = function(data) {
+    error = data.errorCode + "";
+    while (error.length < 3) error = "0" + error;
+    errorCode.innerHTML = error;
+    if (data.errorCode==0) {
+	errorCode.style.background = "lightgreen";
+    } else {
+	errorCode.style.background = "red";
+    }
+    
+    lastTime.innerHTML = data.lastTime;
+    year = parseInt(data.lastTime.slice(0, 4));
+    month = parseInt(data.lastTime.slice(5, 7));
+    day = parseInt(data.lastTime.slice(8, 10));
+    hour = parseInt(data.lastTime.slice(11, 13));
+    minute = parseInt(data.lastTime.slice(14, 16));
+    second = parseInt(data.lastTime.slice(17, 19));
+
+    nowT = new Date().getTime();
+    lastT = new Date(year, month-1, day, hour, minute, second, 0).getTime();
+    if ((nowT-lastT)>(5*60*1000)) {
+	lastTime.style.background="red";
+    } else {
+	lastTime.style.background="lightgreen";
+    }
+    
+
+    outsideTemp.innerHTML = data.outsideTemp.toFixed(0) + "°C";
+    outsideTemp.style.background = temp2color(data.outsideTemp);
+
+    outsideTempAvg.innerHTML = data.outsideTempAvg.toFixed(1) + "°C";
+    outsideTempAvg.style.background = temp2color(data.outsideTempAvg);
+
+    roomTemp.innerHTML = data.roomTemp.toFixed(1) + "°C";
+    roomTemp.style.background = temp2color(data.roomTemp);
+
+    boilerTargetTemp.innerHTML = data.boilerTargetTemp.toFixed(0) + "°C";
+
+    boilerTemp.innerHTML = data.boilerTemp.toFixed(0) + "°C";
+
+    returnWaterTemp.innerHTML = data.returnWaterTemp.toFixed(0) + "°C";
+
+    serviceWaterTargetTemp.innerHTML = data.serviceWaterTargetTemp.toFixed(0) + "°C";
+    serviceWaterTemp.innerHTML = data.serviceWaterTemp.toFixed(0) + "°C";
+}
+
+update = function() {
+    var xhr;
+    try {
+	xhr = new  XMLHttpRequest();
+    } catch (e) {
+	xhr = false;
+    }
+
+    xhr.onreadystatechange = function()  {
+	if (xhr.readyState==4) {
+	    if (xhr.status==200) {
+		processData(JSON.parse(xhr.responseText));
+	    }
+	}
+    }
+
+    xhr.open("GET", "data/ebus.json", true);
+    xhr.send(null);
+
+    setTimeout("update()", 5000);
+}
+
+update();
+
+</script>
+</html>
