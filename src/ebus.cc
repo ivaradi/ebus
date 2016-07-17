@@ -437,11 +437,11 @@ void MainMessageHandler::process0503(const Telegram& telegram)
 
         uint8_t statusValue(status);
         char statusStr[16];
-        if ((statusValue&0x80)==0x80) {
+        if (statusValue==0x00) {
+            snprintf(statusStr, sizeof(statusStr), "OK");
+        } else {
             snprintf(statusStr, sizeof(statusStr), "ERROR %u",
                      statusValue&0x7f);
-        } else {
-            snprintf(statusStr, sizeof(statusStr), "OK");
         }
 
         string burnerControlStateStr =
