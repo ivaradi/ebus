@@ -161,11 +161,17 @@ private:
      */
     WebData webData;
 
+    /**
+     * The path of the script sending the e-mail about an error.
+     */
+    std::string sendErrorMailScriptPath;
+
 public:
     /**
      * Construct the message handler.
      */
-    MainMessageHandler(BusHandler& busHandler, const std::string& jsonFilePath);
+    MainMessageHandler(BusHandler& busHandler, const std::string& jsonFilePath,
+                       const char* argv0);
 
 private:
     /**
@@ -202,15 +208,28 @@ private:
      * Process the command 5014
      */
     void process5014(const Telegram& telegram) throw(OverrunException);
+
+    /**
+     * Send the error mail with the given error code.
+     */
+    void sendErrorMail(unsigned errorCode);
 };
 
 //------------------------------------------------------------------------------
 
 inline MainMessageHandler::MainMessageHandler(BusHandler& busHandler,
-                                              const std::string& jsonFilePath) :
+                                              const std::string& jsonFilePath,
+                                              const char* argv0) :
     MessageHandler(busHandler),
     webData(jsonFilePath)
 {
+    const char* lastSlash = strrchr(argv0, '/');
+    if (lastSlash==0) {
+        sendErrorMailScriptPath = "./";
+    } else {
+        sendErrorMailScriptPath = string(argv0, lastSlash + 1 - argv0);
+    }
+    sendErrorMailScriptPath += "senderrormail.py";
 }
 
 //------------------------------------------------------------------------------
@@ -462,6 +481,10 @@ void MainMessageHandler::process0503(const Telegram& telegram)
         {
             bool modified = false;
 
+            if (status!=0 && status!=webData.errorCode) {
+                sendErrorMail(status);
+            }
+
             updateValue(modified, webData.errorCode, status);
             updateValue(modified, webData.boilerTemp, boilerTemp);
             updateValue(modified, webData.returnWaterTemp,  returnWaterTemp);
@@ -688,6 +711,26 @@ void MainMessageHandler::process5014(const Telegram& telegram)
 
 //------------------------------------------------------------------------------
 
+void MainMessageHandler::sendErrorMail(unsigned errorCode)
+{
+    if (fork()!=0) return;
+
+    if (::daemon(0, 0)!=0) {
+        perror("daemon");
+    }
+
+    char errorStr[16];
+    snprintf(errorStr, sizeof(errorStr), "%u", errorCode);
+
+    execl(sendErrorMailScriptPath.c_str(),
+          sendErrorMailScriptPath.c_str(),
+          errorStr,
+          (char*)NULL);
+}
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 int usage(bool error, char* argv[])
 {
     FILE* f = error ? stderr : stdout;
@@ -784,7 +827,7 @@ int main(int argc, char* argv[])
     EBUS ebus(deviceFile);
     try {
         BusHandler busHandler(ebus);
-        MainMessageHandler messageHandler(busHandler, webFilePath);
+        MainMessageHandler messageHandler(busHandler, webFilePath, argv[0]);
 
         while(true) {
             try {
