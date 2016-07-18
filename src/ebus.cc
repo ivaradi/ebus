@@ -55,7 +55,7 @@ public:
     /**
      * The actual error code.
      */
-    int errorCode = 0;
+    unsigned errorCode = 0;
 
     /**
      * The room temperature.
@@ -454,23 +454,14 @@ void MainMessageHandler::process0503(const Telegram& telegram)
         CharData boilerTemp2(reader);
         SignedCharData outsideTemp(reader);
 
-        uint8_t statusValue(status);
-        char statusStr[16];
-        if (statusValue==0x00) {
-            snprintf(statusStr, sizeof(statusStr), "OK");
-        } else {
-            snprintf(statusStr, sizeof(statusStr), "ERROR %u",
-                     statusValue&0x7f);
-        }
-
         string burnerControlStateStr =
             bit2String(burnerControlState, "LDW", "GDW", "WS",
                        "Flame", "Valve1", "Valve2", "UWP", "Alarm");
 
-        Log::info("%s->%s BC Op. Data block 01: %s, state: %s, min-max boiler perf: %u%%, boiler temp: %.2f°C, return water temp: %u°C, boiler temp2: %u°C, outside temp: %d°C",
+        Log::info("%s->%s BC Op. Data block 01: status: %u, BC state: %s, min-max boiler perf: %u%%, boiler temp: %.2f°C, return water temp: %u°C, boiler temp2: %u°C, outside temp: %d°C",
                   address2String(telegram.source).c_str(),
                   address2String(telegram.destination).c_str(),
-                  statusStr, burnerControlStateStr.c_str(),
+                  status.get(), burnerControlStateStr.c_str(),
                   minMaxBoilerPerf.get(),
                   boilerTemp.get(),
                   returnWaterTemp.get(),
@@ -481,11 +472,17 @@ void MainMessageHandler::process0503(const Telegram& telegram)
         {
             bool modified = false;
 
-            if (status!=0 && status!=webData.errorCode) {
-                sendErrorMail(status);
+            unsigned errorCode = 0;
+            if ((burnerControlState&0x80)==0x80) {
+                errorCode = status;
+                if (errorCode==0) errorCode = 0xff;
             }
 
-            updateValue(modified, webData.errorCode, status);
+            if (errorCode!=0 && errorCode!=webData.errorCode) {
+                sendErrorMail(errorCode);
+            }
+
+            updateValue(modified, webData.errorCode, errorCode);
             updateValue(modified, webData.boilerTemp, boilerTemp);
             updateValue(modified, webData.returnWaterTemp,  returnWaterTemp);
             updateValue(modified, webData.serviceWaterTemp, boilerTemp2);
