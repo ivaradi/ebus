@@ -1,0 +1,59 @@
+- Clearing of an error:
+
+    [2016-07-18 19:12:42] 10->03 RC to BC Oper. Data: heatRequest: request #bb, action: action #06, boiler target temp: 35.31°C, boiler target pressure: 128.00bar, setting degree: 127.5%, service water target temp: 50.00°C, fuel type: 0xff
+    [2016-07-18 19:12:43] f1->fe BC Op. Data block 01: status: 1, BC state: , min-max boiler perf: 255%, boiler temp: 31.00°C, return water temp: 255°C, boiler temp2: 50°C, outside
+     temp: 26°C
+    [2016-07-18 19:12:44] Timeout waiting for a message...
+    [2016-07-18 19:12:44] Timeout waiting for a message...
+    [2016-07-18 19:12:44] Timeout waiting for a message...
+    [2016-07-18 19:12:46] 03->f1 RC Target Values: boiler temp: 35.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: -128%, status: heater_circuit_active
+    [2016-07-18 19:12:47] 10->03 RC Target Values: boiler temp: 35.30°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: -128%, status: BWR_active
+    [2016-07-18 19:12:48] f1->fe RC Target Values: boiler temp: 35.30°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: 0%, status: BIT_5 BIT_7
+    [2016-07-18 19:12:52] 10->03 RC to BC Oper. Data: heatRequest: request #bb, action: turn off boiler pump, boiler target temp: 35.31°C, boiler target pressure: 128.00bar, setting degree: 127.5%, service water target temp: 50.00°C, fuel type: 0xff
+    [2016-07-18 19:12:52] f1->fe BC Op. Data block 01: status: 1, BC state: , min-max boiler perf: 255%, boiler temp: 31.00°C, return water temp: 255°C, boiler temp2: 50°C, outside temp: 26°C
+    [2016-07-18 19:12:57] 10->03 RC Target Values: boiler temp: 35.30°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: -128%, status: BWR_active
+    [2016-07-18 19:12:57] f1->fe RC Target Values: boiler temp: 35.30°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: 0%, status: BIT_5 BIT_7
+    [2016-07-18 19:13:02] 10->03 RC to BC Oper. Data: heatRequest: request #bb, action: turn off variable user, boiler target temp: 35.31°C, boiler target pressure: 128.00bar, sett
+    ing degree: 127.5%, service water target temp: 50.00°C, fuel type: 0xff
+    [2016-07-18 19:13:02] f1->fe BC Op. Data block 01: status: 1, BC state: , min-max boiler perf: 255%, boiler temp: 31.00°C, return water temp: 255°C, boiler temp2: 50°C, outside temp: 26°C
+    [2016-07-18 19:13:07] 10->03 RC Target Values: boiler temp: 35.30°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: -128%, status: BWR_active
+    [2016-07-18 19:13:07] f1->fe RC Target Values: boiler temp: 35.30°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: 0%, status: BIT_5 BIT_7
+    [2016-07-18 19:13:08] 03->fe BC Op. Data block 01: status: 4, BC state:  UWP Alarm, min-max boiler perf: 54%, boiler temp: 31.00°C, return water temp: 32°C, boiler temp2: 50°C, outside temp: 26°C
+    [2016-07-18 19:13:09] Timeout waiting for a message...
+    [2016-07-18 19:13:09] Timeout waiting for a message...
+    [2016-07-18 19:13:12] 10->03 RC to BC Oper. Data: heatRequest: request #bb, action: action #06, boiler target temp: 35.31°C, boiler target pressure: 128.00bar, setting degree: 127.5%, service water target temp: 50.00°C, fuel type: 0xff
+    [2016-07-18 19:13:12] f1->fe BC Op. Data block 01: status: 1, BC state: , min-max boiler perf: 255%, boiler temp: 31.00°C, return water temp: 255°C, boiler temp2: 50°C, outside temp: 26°C
+    [2016-07-18 19:13:16] f1->fe RC Target Values: boiler temp: 5.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: 0%, status: BIT_6
+    [2016-07-18 19:13:17] 03->f1 RC Target Values: boiler temp: 35.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: -128%, status: heater_circuit_active
+    [2016-07-18 19:13:18] 10->03 RC Target Values: boiler temp: 5.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: -128%, status: BWR_active BIT_6
+    [2016-07-18 19:13:18] f1->fe RC Target Values: boiler temp: 5.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: 0%, status: BIT_6
+    [2016-07-18 19:13:19] Telegram: 30->fe 5023 [f4 23 00 00 00 5d 01 00 00]
+    [2016-07-18 19:13:20] 30->fe Date/Time: outside temp: 128.00°C, 2016-07-18 (Mon) 19:13:10
+    [2016-07-18 19:13:22] 10->03 RC to BC Oper. Data: heatRequest: prepare service water, action: turn off boiler pump, boiler target temp: 5.00°C, boiler target pressure: 128.00ba
+    [2016-07-18 19:13:23] f1->fe BC Op. Data block 01: status: 0, BC state: , min-max boiler perf: 255%, boiler temp: 31.00°C, return water temp: 255°C, boiler temp2: 50°C, outside temp: 26°C
+    [2016-07-18 19:13:24] Missing ACK symbol, SYN received instead
+    [2016-07-18 19:13:24] Telegram: 30->76 5022 [ce f7 02] (no acknowledgement)
+    [2016-07-18 19:13:24] Unexpected SYN symbol!
+    [2016-07-18 19:13:24]   the bytes received so far: 30 76 50 22 03 ce f7 02 b2
+    [2016-07-18 19:13:24] Missing ACK symbol, SYN received instead
+    [2016-07-18 19:13:24] Telegram: 30->76 5022 [ce f7 02] (no acknowledgement)
+    [2016-07-18 19:13:24] Unexpected SYN symbol!
+    [2016-07-18 19:13:24]   the bytes received so far: 30 76 50 22 03 ce f7 02 b2
+    [2016-07-18 19:13:25] Missing ACK symbol, SYN received instead
+    [2016-07-18 19:13:25] Telegram: 30->76 5022 [57 44 03] (no acknowledgement)
+    [2016-07-18 19:13:25] Unexpected SYN symbol!
+    [2016-07-18 19:13:25]   the bytes received so far: 30 76 50 22 03 57 44 03 aa
+    [2016-07-18 19:13:25] Missing ACK symbol, SYN received instead
+    [2016-07-18 19:13:25] Telegram: 30->76 5022 [57 44 03] (no acknowledgement)
+    [2016-07-18 19:13:25] Unexpected SYN symbol!
+    [2016-07-18 19:13:25]   the bytes received so far: 30 76 50 22 03 57 44 03 aa
+    [2016-07-18 19:13:27] 10->03 RC Target Values: boiler temp: 5.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: -128%, status: BWR_active BIT_6
+    [2016-07-18 19:13:28] f1->fe RC Target Values: boiler temp: 5.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: 0%, status: BIT_6
+    [2016-07-18 19:13:32] 10->03 RC to BC Oper. Data: heatRequest: prepare service water, action: turn off variable user, boiler target temp: 5.00°C, boiler target pressure: 128.00bar, setting degree: 127.5%, service water target temp: 50.00°C, fuel type: 0xff
+    [2016-07-18 19:13:33] f1->fe BC Op. Data block 01: status: 0, BC state: , min-max boiler perf: 255%, boiler temp: 31.00°C, return water temp: 255°C, boiler temp2: 50°C, outside temp: 26°C
+    [2016-07-18 19:13:34] Timeout waiting for a message...
+    [2016-07-18 19:13:34] Timeout waiting for a message...
+    [2016-07-18 19:13:34] Timeout waiting for a message...
+    [2016-07-18 19:13:37] 10->03 RC Target Values: boiler temp: 5.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: -128%, status: BWR_active BIT_6
+    [2016-07-18 19:13:38] f1->fe RC Target Values: boiler temp: 5.00°C, outside temp: 26.00°C, service water temp: 50.00°C, force performance: 0%, status: BIT_6
+    [2016-07-18 19:13:39] 03->fe BC Op. Data block 01: status: 0, BC state:  UWP, min-max boiler perf: 0%, boiler temp: 31.00°C, return water temp: 31°C, boiler temp2: 50°C, outside temp: 26°C
