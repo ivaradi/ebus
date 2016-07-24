@@ -95,6 +95,9 @@ returnWaterTemp = document.getElementById("returnWaterTemp");
 serviceWaterTargetTemp = document.getElementById("serviceWaterTargetTemp");
 serviceWaterTemp = document.getElementById("serviceWaterTemp");
 
+lastData = null;
+lastUpdated = false;
+
 var colorData = [
     {temp: 22, red: 128, green: 255, blue: 128 },
     {temp: 26, red: 255, green: 255, blue: 128 },
@@ -181,9 +184,16 @@ processData = function(data) {
 
     serviceWaterTargetTemp.innerHTML = data.serviceWaterTargetTemp.toFixed(0) + "°C";
     serviceWaterTemp.innerHTML = data.serviceWaterTemp.toFixed(0) + "°C";
+
+    lastUpdated = true;
+    lastData = data;
 }
 
 update = function() {
+    if (!lastUpdated && lastData!=null) {
+        processData(lastData);
+    }
+
     var xhr;
     try {
 	xhr = new  XMLHttpRequest();
@@ -191,15 +201,19 @@ update = function() {
 	xhr = false;
     }
 
+    lastUpdated = false;
+
     xhr.onreadystatechange = function()  {
-	if (xhr.readyState==4) {
-	    if (xhr.status==200) {
-		processData(JSON.parse(xhr.responseText));
-	    }
-	}
+	if (xhr.readyState==4 && xhr.status==200) {
+	    processData(JSON.parse(xhr.responseText));
+        }
     }
 
-    xhr.open("GET", "data/ebus.json", true);
+    if (lastData!=null) {
+        xhr.open("GET", "http://192.168.0.211/data/ebus.json", true);
+    } else {
+        xhr.open("GET", "data/ebus.json", true);
+    }
     xhr.send(null);
 
     setTimeout("update()", 5000);
