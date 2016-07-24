@@ -209,11 +209,7 @@ update = function() {
         }
     }
 
-    if (lastData!=null) {
-        xhr.open("GET", "http://192.168.0.211/data/ebus.json", true);
-    } else {
-        xhr.open("GET", "data/ebus.json", true);
-    }
+    xhr.open("GET", "data/ebus.json", true);
     xhr.send(null);
 
     setTimeout("update()", 5000);
