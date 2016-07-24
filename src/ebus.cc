@@ -37,13 +37,68 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <sys/time.h>
+
 //------------------------------------------------------------------------------
 
 using std::exception;
 using std::string;
+using std::ostream;
 using std::ofstream;
 using std::endl;
 
+//------------------------------------------------------------------------------
+
+/**
+ * Get the current time in milliseconds.
+ */
+unsigned long long currentMillis()
+{
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+
+    unsigned long long millis = tv.tv_sec;
+    millis *= 1000;
+    millis += tv.tv_usec / 1000;
+    return millis;
+}
+
+//------------------------------------------------------------------------------
+
+/**
+ * A data item with a time stamp.
+ */
+template <typename T>
+struct TimedData
+{
+    T value;
+
+    unsigned long long updated;
+
+    TimedData(T value);
+};
+
+//------------------------------------------------------------------------------
+
+template <typename T>
+inline ostream& operator<<(ostream& os, const TimedData<T>& data) {
+    return os << "{ \"value\": " << data.value << ", \"updated\": " << data.updated << "}";
+}
+
+inline ostream& operator<<(ostream& os, const TimedData<std::string>& data) {
+    return os << "{ \"value\": \"" << data.value << "\", \"updated\": " << data.updated << "}";
+}
+
+//------------------------------------------------------------------------------
+
+template <typename T>
+TimedData<T>::TimedData(T value) :
+    value(value),
+    updated(0)
+{
+}
+
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 /**
@@ -55,52 +110,52 @@ public:
     /**
      * The actual error code.
      */
-    unsigned errorCode = 0;
+    TimedData<unsigned> errorCode = 0;
 
     /**
      * The room temperature.
      */
-    double roomTemp = -10.0;
+    TimedData<double> roomTemp = -10.0;
 
     /**
      * The outside temperature.
      */
-    double outsideTemp = -20.0;
+    TimedData<double> outsideTemp = -20.0;
 
     /**
      * The average outside temperature.
      */
-    double outsideTempAvg = -20.0;
+    TimedData<double> outsideTempAvg = -20.0;
 
     /**
      * The temperature of the service water.
      */
-    double serviceWaterTemp = 50.0;
+    TimedData<double> serviceWaterTemp = 50.0;
 
     /**
      * The target temperature of the service water.
      */
-    double serviceWaterTargetTemp = 50.0;
+    TimedData<double> serviceWaterTargetTemp = 50.0;
 
     /**
      * The boiler temperature.
      */
-    double boilerTemp = 5.0;
+    TimedData<double> boilerTemp = 5.0;
 
     /**
      * The return water temperature.
      */
-    double returnWaterTemp = 5.0;
+    TimedData<double> returnWaterTemp = 5.0;
 
     /**
      * The boiler target temperature.
      */
-    double boilerTargetTemp = 5.0;
+    TimedData<double> boilerTargetTemp = 5.0;
 
     /**
      * The last timestamp received.
      */
-    std::string lastTime = "1970-01-01 00:00:00";
+    TimedData<std::string> lastTime = std::string("1970-01-01 00:00:00");
 
 private:
     /**
@@ -250,7 +305,7 @@ void WebData::write()
         outFile << "    \"boilerTemp\":" << boilerTemp << "," << endl;
         outFile << "    \"returnWaterTemp\":" << returnWaterTemp << "," << endl;
         outFile << "    \"boilerTargetTemp\":" << boilerTargetTemp << "," << endl;
-        outFile << "    \"lastTime\": \"" << lastTime << "\"" << endl;
+        outFile << "    \"lastTime\":" << lastTime << endl;
         outFile << "}" << endl;
         outFile.close();
 
@@ -264,14 +319,11 @@ void WebData::write()
 //------------------------------------------------------------------------------
 
 template <typename T, typename U>
-void updateValue(bool& modified, T& value, const U& newValue)
+inline void updateValue(TimedData<T>& data, const U& newValue,
+                        unsigned long long updated)
 {
-    const T nv = static_cast<T>(newValue);
-
-    if (nv==value) return;
-
-    value = nv;
-    modified = true;
+    data.value =  static_cast<T>(newValue);
+    data.updated = updated;
 }
 
 //------------------------------------------------------------------------------
@@ -470,25 +522,25 @@ void MainMessageHandler::process0503(const Telegram& telegram)
         if (telegram.source==0x03 &&
             BusHandler::isBroadcastAddress(telegram.destination))
         {
-            bool modified = false;
-
             unsigned errorCode = 0;
             if ((burnerControlState&0x80)==0x80) {
                 errorCode = status;
                 if (errorCode==0) errorCode = 0xff;
             }
 
-            if (errorCode!=0 && errorCode!=webData.errorCode) {
+            if (errorCode!=0 && errorCode!=webData.errorCode.value) {
                 sendErrorMail(errorCode);
             }
 
-            updateValue(modified, webData.errorCode, errorCode);
-            updateValue(modified, webData.boilerTemp, boilerTemp);
-            updateValue(modified, webData.returnWaterTemp,  returnWaterTemp);
-            updateValue(modified, webData.serviceWaterTemp, boilerTemp2);
-            updateValue(modified, webData.outsideTemp, outsideTemp);
+            auto now = currentMillis();
 
-            if (modified) webData.write();
+            updateValue(webData.errorCode, errorCode, now);
+            updateValue(webData.boilerTemp, boilerTemp, now);
+            updateValue(webData.returnWaterTemp,  returnWaterTemp, now);
+            updateValue(webData.serviceWaterTemp, boilerTemp2, now);
+            updateValue(webData.outsideTemp, outsideTemp, now);
+
+            webData.write();
         }
 
     } else if (blockNumber==0x02) {
@@ -633,11 +685,11 @@ void MainMessageHandler::process0700(const Telegram& telegram)
                  hours.get(), minutes.get(), seconds.get());
         string lastTime(buf);
 
-        bool modified = false;
+        auto now = currentMillis();
 
-        updateValue(modified, webData.lastTime, lastTime);
+        updateValue(webData.lastTime, lastTime, now);
 
-        if (modified) webData.write();
+        webData.write();
     }
 
 }
@@ -668,14 +720,14 @@ void MainMessageHandler::process0800(const Telegram& telegram)
     if (telegram.source==0xf1 &&
         BusHandler::isBroadcastAddress(telegram.destination))
     {
-        bool modified = false;
+        auto now = currentMillis();
 
-        updateValue(modified, webData.boilerTargetTemp, boilerTargetTemp);
-        updateValue(modified, webData.outsideTempAvg, outsideTemp);
-        updateValue(modified, webData.serviceWaterTargetTemp,
-                    serviceWaterTargetTemp);
+        updateValue(webData.boilerTargetTemp, boilerTargetTemp, now);
+        updateValue(webData.outsideTempAvg, outsideTemp, now);
+        updateValue(webData.serviceWaterTargetTemp,
+                    serviceWaterTargetTemp, now);
 
-        if (modified) webData.write();
+        webData.write();
     }
 }
 
@@ -699,11 +751,11 @@ void MainMessageHandler::process5014(const Telegram& telegram)
               boilerTargetTemp.get(), roomTemp.get(), mixerTemp.get(),
               statusStr.c_str());
 
-    bool modified = false;
+    auto now = currentMillis();
 
-    updateValue(modified, webData.roomTemp, roomTemp);
+    updateValue(webData.roomTemp, roomTemp, now);
 
-    if (modified) webData.write();
+    webData.write();
 }
 
 //------------------------------------------------------------------------------

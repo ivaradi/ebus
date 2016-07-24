@@ -19,6 +19,14 @@
             text-align: center;
             background: lightgreen;
         }
+
+        .updated {
+            font-size: 50%;
+            padding-left: 10px;
+            padding-right: 10px;
+            text-align: right;
+            background: lightgreen;
+        }
     </style>
     <title>Otthon</title>
 </head>
@@ -38,8 +46,12 @@
                     <td class="heading" colspan="2">Dátum, idő</td>
                 </tr>
                 <tr>
-                    <td id="errorCode" class="data" style="border-right: thick solid lightblue; border-bottom: thick solid lightblue;">000</td>
-                    <td id="lastTime" class="data" style="border-bottom: thick solid lightblue; font-size: 200%" colspan="2">2016-07-16 15:00:10</td>
+                    <td id="errorCode" class="data" style="border-right: thick solid lightblue; ">000</td>
+                    <td id="lastTime" class="data" style="font-size: 200%" colspan="2">2016-07-16 15:00:10</td>
+                </tr>
+                <tr>
+                    <td id="errorCodeUpdated" class="updated" style="border-right: thick solid lightblue; ">1970-01-01 00:00:00</td>
+                    <td id="lastTimeUpdated" class="updated" colspan="2">1970-01-01 00:00:00</td>
                 </tr>
                 <tr>
                     <td class="heading" style="border-right: thick solid lightblue;">Külső hőmérséklet</td>
@@ -52,6 +64,11 @@
                     <td id="roomTemp" class="data">18.2°C</td>
                 </tr>
                 <tr>
+                    <td id="outsideTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="outsideTempAvgUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="roomTempUpdated" class="updated">1970-01-01 00:00:00</td>
+                </tr>
+                <tr>
                     <td class="heading" style="border-right: thick solid lightblue;">Fűtés célhőmérséklet</td>
                     <td class="heading" style="border-right: thick solid lightblue;">Vízhőmérséklet</td>
                     <td class="heading">Visszatérő vízhőm.</td>
@@ -62,6 +79,11 @@
                     <td id="returnWaterTemp" class="data">18.2°C</td>
                 </tr>
                 <tr>
+                    <td id="boilerTargetTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="boilerTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="returnWaterTempUpdated" class="updated">1970-01-01 00:00:00</td>
+                </tr>
+                <tr>
                     <td class="heading" style="border-right: thick solid lightblue;">Melegvíz célhőmérséklet</td>
                     <td class="heading" style="border-right: thick solid lightblue;">Melegvíz hőmérséklet</td>
                     <td class="heading"></td>
@@ -70,6 +92,11 @@
                     <td id="serviceWaterTargetTemp" class="data" style="border-right: thick solid lightblue;">23°C</td>
                     <td id="serviceWaterTemp" class="data" style="border-right: thick solid lightblue;">22°C</td>
                     <td class="data"></td>
+                </tr>
+                <tr>
+                    <td id="serviceWaterTargetTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="serviceWaterTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="" class="updated"></td>
                 </tr>
             </table>
         </td>
@@ -82,18 +109,28 @@
 <script>
 
 errorCode = document.getElementById("errorCode");
+errorCodeUpdated = document.getElementById("errorCodeUpdated");
 lastTime = document.getElementById("lastTime");
+lastTimeUpdated = document.getElementById("lastTimeUpdated");
 
 outsideTemp = document.getElementById("outsideTemp");
+outsideTempUpdated = document.getElementById("outsideTempUpdated");
 outsideTempAvg = document.getElementById("outsideTempAvg");
+outsideTempAvgUpdated = document.getElementById("outsideTempAvgUpdated");
 roomTemp = document.getElementById("roomTemp");
+roomTempUpdated = document.getElementById("roomTempUpdated");
 
 boilerTargetTemp = document.getElementById("boilerTargetTemp");
+boilerTargetTempUpdated = document.getElementById("boilerTargetTempUpdated");
 boilerTemp = document.getElementById("boilerTemp");
+boilerTempUpdated = document.getElementById("boilerTempUpdated");
 returnWaterTemp = document.getElementById("returnWaterTemp");
+returnWaterTempUpdated = document.getElementById("returnWaterTempUpdated");
 
 serviceWaterTargetTemp = document.getElementById("serviceWaterTargetTemp");
+serviceWaterTargetTempUpdated = document.getElementById("serviceWaterTargetTempUpdated");
 serviceWaterTemp = document.getElementById("serviceWaterTemp");
+serviceWaterTempUpdated = document.getElementById("serviceWaterTempUpdated");
 
 lastData = null;
 lastUpdated = false;
@@ -140,23 +177,53 @@ temp2color = function(temp) {
     }
 }
 
+toNDigitString = function(value, numDigits) {
+    var str = value + "";
+    while(str.length<numDigits) str = "0" + str;
+    return str;
+}
+
+setupUpdated = function(element, timestamp, tooOldTimeout) {
+    var updated = new Date(timestamp)
+
+    var month = toNDigitString(updated.getMonth()+1, 2);
+    var day = toNDigitString(updated.getDate(), 2);
+    var hour = toNDigitString(updated.getHours(), 2);
+    var minute = toNDigitString(updated.getMinutes(), 2);
+    var second = toNDigitString(updated.getSeconds(), 2);
+
+    dateStr = updated.getFullYear() + "-" + month + "-" + day;
+    dateStr += " " + hour + ":" + minute + ":" + second;
+
+    element.innerHTML = dateStr;
+
+    var now = new Date().getTime();
+
+    if ((timestamp + tooOldTimeout) < now ) {
+        element.style.background = "red";
+    } else {
+        element.style.background = "lightgreen";
+    }
+}
+
 processData = function(data) {
-    error = data.errorCode + "";
+    error = data.errorCode.value + "";
     while (error.length < 3) error = "0" + error;
     errorCode.innerHTML = error;
-    if (data.errorCode==0) {
+    if (data.errorCode.value==0) {
         errorCode.style.background = "lightgreen";
     } else {
         errorCode.style.background = "red";
     }
+    setupUpdated(errorCodeUpdated, data.errorCode.updated, 60*1000*1000);
 
-    lastTime.innerHTML = data.lastTime;
-    year = parseInt(data.lastTime.slice(0, 4));
-    month = parseInt(data.lastTime.slice(5, 7));
-    day = parseInt(data.lastTime.slice(8, 10));
-    hour = parseInt(data.lastTime.slice(11, 13));
-    minute = parseInt(data.lastTime.slice(14, 16));
-    second = parseInt(data.lastTime.slice(17, 19));
+    lastTime.innerHTML = data.lastTime.value;
+    year = parseInt(data.lastTime.value.slice(0, 4));
+    month = parseInt(data.lastTime.value.slice(5, 7));
+    day = parseInt(data.lastTime.value.slice(8, 10));
+    hour = parseInt(data.lastTime.value.slice(11, 13));
+    minute = parseInt(data.lastTime.value.slice(14, 16));
+    second = parseInt(data.lastTime.value.slice(17, 19));
 
     nowT = new Date().getTime();
     lastT = new Date(year, month-1, day, hour, minute, second, 0).getTime();
@@ -165,25 +232,34 @@ processData = function(data) {
     } else {
         lastTime.style.background="lightgreen";
     }
+    setupUpdated(lastTimeUpdated, data.lastTime.updated, 120*1000*1000);
 
 
-    outsideTemp.innerHTML = data.outsideTemp.toFixed(0) + "°C";
-    outsideTemp.style.background = temp2color(data.outsideTemp);
+    outsideTemp.innerHTML = data.outsideTemp.value.toFixed(0) + "°C";
+    outsideTemp.style.background = temp2color(data.outsideTemp.value);
+    setupUpdated(outsideTempUpdated, data.outsideTemp.updated, 60*1000*1000);
 
-    outsideTempAvg.innerHTML = data.outsideTempAvg.toFixed(1) + "°C";
-    outsideTempAvg.style.background = temp2color(data.outsideTempAvg);
+    outsideTempAvg.innerHTML = data.outsideTempAvg.value.toFixed(1) + "°C";
+    outsideTempAvg.style.background = temp2color(data.outsideTempAvg.value);
+    setupUpdated(outsideTempAvgUpdated, data.outsideTempAvg.updated, 60*1000*1000);
 
-    roomTemp.innerHTML = data.roomTemp.toFixed(1) + "°C";
-    roomTemp.style.background = temp2color(data.roomTemp);
+    roomTemp.innerHTML = data.roomTemp.value.toFixed(1) + "°C";
+    roomTemp.style.background = temp2color(data.roomTemp.value);
+    setupUpdated(roomTempUpdated, data.roomTemp.updated, 15*60*1000*1000);
 
-    boilerTargetTemp.innerHTML = data.boilerTargetTemp.toFixed(0) + "°C";
+    boilerTargetTemp.innerHTML = data.boilerTargetTemp.value.toFixed(0) + "°C";
+    setupUpdated(boilerTargetTempUpdated, data.boilerTargetTemp.updated, 60*1000*1000);
 
-    boilerTemp.innerHTML = data.boilerTemp.toFixed(0) + "°C";
+    boilerTemp.innerHTML = data.boilerTemp.value.toFixed(0) + "°C";
+    setupUpdated(boilerTempUpdated, data.boilerTemp.updated, 60*1000*1000);
 
-    returnWaterTemp.innerHTML = data.returnWaterTemp.toFixed(0) + "°C";
+    returnWaterTemp.innerHTML = data.returnWaterTemp.value.toFixed(0) + "°C";
+    setupUpdated(returnWaterTempUpdated, data.returnWaterTemp.updated, 60*1000*1000);
 
-    serviceWaterTargetTemp.innerHTML = data.serviceWaterTargetTemp.toFixed(0) + "°C";
-    serviceWaterTemp.innerHTML = data.serviceWaterTemp.toFixed(0) + "°C";
+    serviceWaterTargetTemp.innerHTML = data.serviceWaterTargetTemp.value.toFixed(0) + "°C";
+    setupUpdated(serviceWaterTargetTempUpdated, data.serviceWaterTargetTemp.updated, 60*1000*1000);
+    serviceWaterTemp.innerHTML = data.serviceWaterTemp.value.toFixed(0) + "°C";
+    setupUpdated(serviceWaterTempUpdated, data.serviceWaterTemp.updated, 60*1000*1000);
 
     lastUpdated = true;
     lastData = data;
