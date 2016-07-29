@@ -215,7 +215,7 @@ processData = function(data) {
     } else {
         errorCode.style.background = "red";
     }
-    setupUpdated(errorCodeUpdated, data.errorCode.updated, 60*1000*1000);
+    setupUpdated(errorCodeUpdated, data.errorCode.updated, 60*1000);
 
     lastTime.innerHTML = data.lastTime.value;
     year = parseInt(data.lastTime.value.slice(0, 4));
@@ -232,34 +232,34 @@ processData = function(data) {
     } else {
         lastTime.style.background="lightgreen";
     }
-    setupUpdated(lastTimeUpdated, data.lastTime.updated, 120*1000*1000);
+    setupUpdated(lastTimeUpdated, data.lastTime.updated, 120*1000);
 
 
     outsideTemp.innerHTML = data.outsideTemp.value.toFixed(0) + "°C";
     outsideTemp.style.background = temp2color(data.outsideTemp.value);
-    setupUpdated(outsideTempUpdated, data.outsideTemp.updated, 60*1000*1000);
+    setupUpdated(outsideTempUpdated, data.outsideTemp.updated, 60*1000);
 
     outsideTempAvg.innerHTML = data.outsideTempAvg.value.toFixed(1) + "°C";
     outsideTempAvg.style.background = temp2color(data.outsideTempAvg.value);
-    setupUpdated(outsideTempAvgUpdated, data.outsideTempAvg.updated, 60*1000*1000);
+    setupUpdated(outsideTempAvgUpdated, data.outsideTempAvg.updated, 60*1000);
 
     roomTemp.innerHTML = data.roomTemp.value.toFixed(1) + "°C";
     roomTemp.style.background = temp2color(data.roomTemp.value);
-    setupUpdated(roomTempUpdated, data.roomTemp.updated, 15*60*1000*1000);
+    setupUpdated(roomTempUpdated, data.roomTemp.updated, 15*60*1000);
 
     boilerTargetTemp.innerHTML = data.boilerTargetTemp.value.toFixed(0) + "°C";
-    setupUpdated(boilerTargetTempUpdated, data.boilerTargetTemp.updated, 60*1000*1000);
+    setupUpdated(boilerTargetTempUpdated, data.boilerTargetTemp.updated, 60*1000);
 
     boilerTemp.innerHTML = data.boilerTemp.value.toFixed(0) + "°C";
-    setupUpdated(boilerTempUpdated, data.boilerTemp.updated, 60*1000*1000);
+    setupUpdated(boilerTempUpdated, data.boilerTemp.updated, 60*1000);
 
     returnWaterTemp.innerHTML = data.returnWaterTemp.value.toFixed(0) + "°C";
-    setupUpdated(returnWaterTempUpdated, data.returnWaterTemp.updated, 60*1000*1000);
+    setupUpdated(returnWaterTempUpdated, data.returnWaterTemp.updated, 60*1000);
 
     serviceWaterTargetTemp.innerHTML = data.serviceWaterTargetTemp.value.toFixed(0) + "°C";
-    setupUpdated(serviceWaterTargetTempUpdated, data.serviceWaterTargetTemp.updated, 60*1000*1000);
+    setupUpdated(serviceWaterTargetTempUpdated, data.serviceWaterTargetTemp.updated, 60*1000);
     serviceWaterTemp.innerHTML = data.serviceWaterTemp.value.toFixed(0) + "°C";
-    setupUpdated(serviceWaterTempUpdated, data.serviceWaterTemp.updated, 60*1000*1000);
+    setupUpdated(serviceWaterTempUpdated, data.serviceWaterTemp.updated, 60*1000);
 
     lastUpdated = true;
     lastData = data;
