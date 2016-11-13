@@ -182,7 +182,7 @@ typedef SignedCharData Data1b;
  * Template for data types that produce a double value from an integer one by
  * dividing the integer value by some number.
  */
-template <typename rawT, unsigned divisor>
+template <typename rawT, unsigned divisor, typename realRawT = rawT>
 class DoubleData
 {
 public:
@@ -245,14 +245,14 @@ typedef DoubleData<uint8_t, 2> Data1c;
 /**
  * A DATA2b data.
  */
-typedef DoubleData<uint16_t, 256> Data2b;
+typedef DoubleData<uint16_t, 256, int16_t> Data2b;
 
 //------------------------------------------------------------------------------
 
 /**
  * A DATA2c data.
  */
-typedef DoubleData<uint16_t, 16> Data2c;
+typedef DoubleData<uint16_t, 16, int16_t> Data2c;
 
 //------------------------------------------------------------------------------
 // Inline definitions
@@ -366,64 +366,64 @@ inline uint8_t BCDData::operator=(uint8_t value)
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-template <typename rawT, unsigned divisor>
-inline double DoubleData<rawT, divisor>::fromRaw(rawT rawValue)
+template <typename rawT, unsigned divisor, typename realRawT>
+inline double DoubleData<rawT, divisor, realRawT>::fromRaw(rawT rawValue)
 {
-    return rawValue / static_cast<double>(divisor);
+    return static_cast<realRawT>(rawValue) / static_cast<double>(divisor);
 }
 
 //------------------------------------------------------------------------------
 
-template <typename rawT, unsigned divisor>
-inline rawT DoubleData<rawT, divisor>::toRaw(double value)
+template <typename rawT, unsigned divisor, typename realRawT>
+inline rawT DoubleData<rawT, divisor, realRawT>::toRaw(double value)
 {
     return static_cast<rawT>(round(value*divisor));
 }
 
 //------------------------------------------------------------------------------
 
-template <typename rawT, unsigned divisor>
-inline DoubleData<rawT, divisor>::DoubleData(double value) :
+template <typename rawT, unsigned divisor, typename realRawT>
+inline DoubleData<rawT, divisor, realRawT>::DoubleData(double value) :
     rawValue(toRaw(value))
 {
 }
 
 //------------------------------------------------------------------------------
 
-template <typename rawT, unsigned divisor>
-inline DoubleData<rawT, divisor>::DoubleData(DataSymbolReader& reader) :
+template <typename rawT, unsigned divisor, typename realRawT>
+inline DoubleData<rawT, divisor, realRawT>::DoubleData(DataSymbolReader& reader) :
     rawValue(reader)
 {
 }
 
 //------------------------------------------------------------------------------
 
-template <typename rawT, unsigned divisor>
-inline double DoubleData<rawT, divisor>::get() const
+template <typename rawT, unsigned divisor, typename realRawT>
+inline double DoubleData<rawT, divisor, realRawT>::get() const
 {
     return fromRaw(rawValue);
 }
 
 //------------------------------------------------------------------------------
 
-template <typename rawT, unsigned divisor>
-inline DoubleData<rawT, divisor>::operator double() const
+template <typename rawT, unsigned divisor, typename realRawT>
+inline DoubleData<rawT, divisor, realRawT>::operator double() const
 {
     return fromRaw(rawValue);
 }
 
 //------------------------------------------------------------------------------
 
-template <typename rawT, unsigned divisor>
-inline void DoubleData<rawT, divisor>::set(double value)
+template <typename rawT, unsigned divisor, typename realRawT>
+inline void DoubleData<rawT, divisor, realRawT>::set(double value)
 {
     rawValue = toRaw(value);
 }
 
 //------------------------------------------------------------------------------
 
-template <typename rawT, unsigned divisor>
-inline double DoubleData<rawT, divisor>::operator=(double value)
+template <typename rawT, unsigned divisor, typename realRawT>
+inline double DoubleData<rawT, divisor, realRawT>::operator=(double value)
 {
     rawValue = toRaw(value);
     return value;
