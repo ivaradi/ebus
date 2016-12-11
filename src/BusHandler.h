@@ -215,6 +215,11 @@ public:
      * a SYNException is thrown.
      */
     symbol_t nextSymbol() throw (OSError, TimeoutException, SYNException);
+
+    /**
+     * Write a symbol to the bus and read it back. CRC will be updated.
+     */
+    symbol_t writeSymbol(symbol_t symbol) throw (OSError);
 };
 
 //------------------------------------------------------------------------------

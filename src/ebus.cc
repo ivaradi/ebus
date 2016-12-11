@@ -875,8 +875,24 @@ int main(int argc, char* argv[])
 
     EBUS ebus(deviceFile);
     try {
+
         BusHandler busHandler(ebus);
         MainMessageHandler messageHandler(busHandler, webFilePath, argv[0]);
+
+        // auto telegram = new Telegram(0x31, 0x10, 0x07, 0x01, 9);
+        // telegram->dataSymbols[0] = 0x10;
+        // telegram->dataSymbols[1] = 0x13;
+        // telegram->dataSymbols[2] = 0x20;
+        // telegram->dataSymbols[3] = 0x11;
+        // telegram->dataSymbols[4] = 0x12;
+        // telegram->dataSymbols[5] = 0x07;
+        // telegram->dataSymbols[6] = 0x16;
+        // telegram->dataSymbols[7] = 0x00;
+        // telegram->dataSymbols[8] = 0x80;
+
+        auto telegram = new Telegram(0x31, 0x15, 0x07, 0x04, 0);
+
+        messageHandler.send(telegram);
 
         while(true) {
             try {

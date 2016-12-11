@@ -210,7 +210,7 @@ inline Telegram::~Telegram()
 
 inline void Telegram::startReply(size_t numDataSymbols)
 {
-    assert(replyDataSymbols==0);
+    delete [] replyDataSymbols;
     numReplyDataSymbols = numDataSymbols;
     replyDataSymbols = new symbol_t[numDataSymbols];
 }

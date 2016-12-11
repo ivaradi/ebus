@@ -25,6 +25,8 @@
 #include "OSError.h"
 #include "util.h"
 
+#include <deque>
+
 //------------------------------------------------------------------------------
 
 class Telegram;
@@ -42,6 +44,11 @@ private:
      */
     BusHandler& busHandler;
 
+    /**
+     * The queue of telegrams to send.
+     */
+    std::deque<Telegram*> sendQueue;
+
 public:
     /**
      * Construct the message handler for the given bus handler.
@@ -52,6 +59,11 @@ public:
      * Handle the messages.
      */
     void run() throw (OSError);
+
+    /**
+     * Send the given telegram. It will be enqueued, and attempted to be sent.
+     */
+    void send(Telegram* telegram);
 
 protected:
     /**
@@ -71,6 +83,20 @@ private:
      */
     void readReply(Telegram& telegram)
         throw(SYNException, TimeoutException, OSError);
+
+    /**
+     * Read the slave reply and the corresponding master acknowledgement.
+     */
+    void readReplyAndACK(Telegram& telegram)
+        throw(SYNException, TimeoutException, OSError);
+
+    /**
+     * Try to send the first telegram in the queue.
+     *
+     * @return 0 on success, otherwise the number of SYN symbols to wait for
+     * trying to send again.
+     */
+    unsigned trySend() throw(SYNException, TimeoutException, OSError);
 };
 
 //------------------------------------------------------------------------------

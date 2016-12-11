@@ -43,6 +43,7 @@ void MessageHandler::run() throw (OSError)
         }
 
         bool dumpData = false;
+        unsigned waitSYNBeforeSend = 0;
         try {
             synPending = false;
             while (true) {
@@ -50,6 +51,12 @@ void MessageHandler::run() throw (OSError)
                 while (source == BusHandler::SYMBOL_SYN) {
                     if (!busHandler.nextRawSymbolMaybe(source)) {
                         Log::info("Timeout waiting for a message...");
+                    }
+                    if (waitSYNBeforeSend>0) --waitSYNBeforeSend;
+                    if (waitSYNBeforeSend==0 &&
+                        source==BusHandler::SYMBOL_SYN && !sendQueue.empty())
+                    {
+                        waitSYNBeforeSend = trySend();
                     }
                 }
 
@@ -87,6 +94,13 @@ void MessageHandler::run() throw (OSError)
             }
         }
     }
+}
+
+//------------------------------------------------------------------------------
+
+void MessageHandler::send(Telegram* telegram)
+{
+    sendQueue.push_back(telegram);
 }
 
 //------------------------------------------------------------------------------
@@ -142,7 +156,7 @@ void MessageHandler::readTelegram(symbol_t source)
     if (BusHandler::isSlaveAddress(destination) &&
         ack==BusHandler::SYMBOL_ACK)
     {
-        readReply(telegram);
+        readReplyAndACK(telegram);
     }
 
     received(telegram);
@@ -164,12 +178,74 @@ void MessageHandler::readReply(Telegram& telegram)
     auto replyCRC = busHandler.getCRC();
     auto sentReplyCRC = busHandler.nextSymbol();
     telegram.replyCRCOK = replyCRC == sentReplyCRC;
+}
+
+//------------------------------------------------------------------------------
+
+void MessageHandler::readReplyAndACK(Telegram& telegram)
+    throw(SYNException, TimeoutException, OSError)
+{
+    readReply(telegram);
 
     auto replyACK = busHandler.nextSymbol();
     if (replyACK!=BusHandler::SYMBOL_ACK) {
         Log::error("No ACK at the end of the slave reply: %02x", replyACK);
     }
     telegram.masterAcknowledgement = Telegram::symbol2ack(replyACK);
+}
+
+//------------------------------------------------------------------------------
+
+unsigned MessageHandler::trySend()
+    throw(SYNException, TimeoutException, OSError)
+{
+    auto telegram = sendQueue.front();
+
+    busHandler.resetCRC();
+    auto symbol = busHandler.writeSymbol(telegram->source);
+    if (symbol==telegram->source) {
+        busHandler.writeSymbol(telegram->destination);
+        busHandler.writeSymbol(telegram->primaryCommand);
+        busHandler.writeSymbol(telegram->secondaryCommand);
+        busHandler.writeSymbol(telegram->numDataSymbols);
+        for(size_t i = 0; i<telegram->numDataSymbols; ++i) {
+            busHandler.writeSymbol(telegram->dataSymbols[i]);
+        }
+        busHandler.writeSymbol(busHandler.getCRC());
+        telegram->crcOK = true;
+
+        bool isOK = true;
+        if (!BusHandler::isBroadcastAddress(telegram->destination)) {
+            auto ack = busHandler.nextSymbol();
+            if (ack!=BusHandler::SYMBOL_ACK) {
+                Log::error("No ACK at received from destination: %02x", ack);
+            }
+            telegram->acknowledgement = Telegram::symbol2ack(ack);
+            if (telegram->acknowledgement==Telegram::ACK) {
+                if (BusHandler::isSlaveAddress(telegram->destination)) {
+                    readReply(*telegram);
+                    isOK = telegram->replyCRCOK;
+
+                    auto replyACK = isOK ?
+                        BusHandler::SYMBOL_ACK : BusHandler::SYMBOL_NACK;
+                    busHandler.writeSymbol(replyACK);
+
+                    telegram->masterAcknowledgement =
+                        Telegram::symbol2ack(replyACK);
+                }
+            } else {
+                isOK = false;
+            }
+        }
+        if (isOK) {
+            received(*telegram);
+            sendQueue.pop_front();
+            delete telegram;
+        }
+        return 0;
+    } else {
+        return ((symbol&0x0f)==(telegram->source&0x0f)) ? 1 : 2;
+    }
 }
 
 //------------------------------------------------------------------------------

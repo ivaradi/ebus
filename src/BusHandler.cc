@@ -141,6 +141,18 @@ bool BusHandler::nextSymbolMaybe(symbol_t& symbol) throw (OSError, SYNException)
 
 //------------------------------------------------------------------------------
 
+symbol_t BusHandler::writeSymbol(symbol_t symbol) throw (OSError)
+{
+    ebus.write(symbol);
+
+    symbol = ebus.read();
+    updateCRC(crc, symbol);
+
+    return symbol;
+}
+
+//------------------------------------------------------------------------------
+
 // Local Variables:
 // mode: C++
 // c-basic-offset: 4
