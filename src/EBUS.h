@@ -25,6 +25,10 @@
 
 //------------------------------------------------------------------------------
 
+#define LOG_BYTES_RECEIVED 0
+
+//------------------------------------------------------------------------------
+
 /**
  * The main eBUS handler class.
  */
@@ -45,6 +49,23 @@ private:
      * The file descriptor of the serial port.
      */
     int portFD;
+
+#if LOG_BYTES_RECEIVED
+    /**
+     * The bytes read so far without logging.
+     */
+    uint8_t bytesRead[512];
+
+    /**
+     * The number of bytes read but not logged.
+     */
+    size_t numUnloggedBytes;
+
+    /**
+     * The last time a bytes was read.
+     */
+    unsigned long long lastReadTime;
+#endif
 
 public:
     /**
@@ -111,6 +132,11 @@ private:
      */
     void closeOnError(const std::string prefix = "", int errorNumber = -1)
         throw(OSError);
+
+    /**
+     * Add a byte read.
+     */
+    void addByteRead(uint8_t b);
 };
 
 //------------------------------------------------------------------------------

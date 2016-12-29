@@ -20,6 +20,7 @@
 
 #include "EBUS.h"
 #include "Log.h"
+#include "util.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -37,10 +38,23 @@ using std::string;
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+#if !LOG_BYTES_RECEIVED
+inline void EBUS::addByteRead(uint8_t /*b*/)
+{
+}
+#endif
+
+//------------------------------------------------------------------------------
+
 EBUS::EBUS(const string& devicePath) throw (OSError) :
     epollFD(-1),
     devicePath(devicePath),
     portFD(-1)
+#if LOG_BYTES_RECEIVED
+    ,
+    numUnloggedBytes(0),
+    lastReadTime(0)
+#endif
 {
     setupEPoll();
 }
@@ -76,6 +90,7 @@ uint8_t EBUS::read() throw(OSError)
     if (::read(portFD, &symbol, 1)<0) {
         closeOnError("EBUS::read: read");
     }
+    addByteRead(symbol);
     return symbol;
 }
 
@@ -99,6 +114,7 @@ bool EBUS::readMaybe(uint8_t& symbol, unsigned timeout) throw(OSError)
                 if (::read(portFD, &symbol, 1)<0) {
                     closeOnError("EBUS::read: read");
                 }
+                addByteRead(symbol);
                 return true;
             } else {
                 closeOnError("EBUS::readMaybe: no EPOLLIN event");
@@ -184,6 +200,38 @@ void EBUS::closeOnError(const std::string prefix, int errorNumber)
     close();
     throw osError;
 }
+
+//------------------------------------------------------------------------------
+
+#if LOG_BYTES_RECEIVED
+void EBUS::addByteRead(uint8_t b)
+{
+    auto t = currentTimeMillis();
+
+    // Log::info("addByteRead: b=%02x, t=%llu, lastReadTime=%llu (%llu), numUnloggedBytes=%zu\n",
+    //           b, t, lastReadTime, t-lastReadTime, numUnloggedBytes);
+
+    if ((t>(lastReadTime + 30) && numUnloggedBytes>0) ||
+        numUnloggedBytes>=sizeof(bytesRead))
+    {
+        char buffer[2048];
+        size_t offset = 0;
+
+        offset += snprintf(buffer + offset, sizeof(buffer)-offset,
+                           "Bytes read:");
+        for(size_t i = 0; i<numUnloggedBytes; ++i) {
+            offset += snprintf(buffer + offset, sizeof(buffer)-offset, " %02x",
+                               bytesRead[i]);
+        }
+        Log::info("%s", buffer);
+
+        numUnloggedBytes = 0;
+    }
+
+    bytesRead[numUnloggedBytes++] = b;
+    lastReadTime = t;
+}
+#endif
 
 //------------------------------------------------------------------------------
 
