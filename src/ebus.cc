@@ -890,9 +890,9 @@ int main(int argc, char* argv[])
         // telegram->dataSymbols[7] = 0x00;
         // telegram->dataSymbols[8] = 0x80;
 
-        auto telegram = new Telegram(0x31, 0x15, 0x07, 0x04, 0);
+        // auto telegram = new Telegram(0x31, 0x15, 0x07, 0x04, 0);
 
-        messageHandler.send(telegram);
+        // messageHandler.send(telegram);
 
         while(true) {
             try {
