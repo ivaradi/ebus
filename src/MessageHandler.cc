@@ -44,11 +44,13 @@ void MessageHandler::run() throw (OSError)
 
         bool dumpData = false;
         unsigned waitSYNBeforeSend = 0;
+        unsigned long long lastSYNTime = 0;
         try {
             synPending = false;
             while (true) {
                 auto source = BusHandler::SYMBOL_SYN;
                 while (source == BusHandler::SYMBOL_SYN) {
+                    lastSYNTime = currentTimeMillis();
                     if (!busHandler.nextRawSymbolMaybe(source)) {
                         Log::info("Timeout waiting for a message...");
                     }
@@ -61,7 +63,8 @@ void MessageHandler::run() throw (OSError)
                 }
 
                 if (!BusHandler::isMasterAddress(source)) {
-                    Log::info("The first byte after SYN is not master address!");
+                    Log::info("The first byte after SYN is not master address: 0x%02x, delay: %llu ms!",
+                              source, currentTimeMillis() - lastSYNTime);
                     continue;
                 }
 
