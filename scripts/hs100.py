@@ -7,6 +7,46 @@ import socket
 import json
 import time
 import subprocess
+from ConfigParser import SafeConfigParser
+
+#----------------------------------------------------------------------------------------
+
+class Config(object):
+    """The configuration."""
+    def __init__(self):
+        """Create a configuration.
+
+        If the path is None, no values will be filled."""
+        self.address = None
+        self.port = 9999
+
+        self.commandsDir = None
+
+    def loadFrom(self, f):
+        """Load the configuration from the given file."""
+        try:
+            configParser = SafeConfigParser()
+            configParser.readfp(f)
+
+            if configParser.has_option("device", "address"):
+               self.address = configParser.get("device", "address")
+
+            if configParser.has_option("device", "port"):
+                self.port = configParser.getint("device", "port")
+
+            if configParser.has_option("daemon", "commandsDir"):
+                self.commandsDir = configParser.get("daemon", "commandsDir")
+        except Exception, e:
+            print >> sys.stderr, "Failed to read configuration:", e
+
+    def setupFromArgs(self, args):
+        """Set the values from the given arguments."""
+        if "address" in args and args.address is not None:
+            self.address = args.address
+        if "port" in args and args.port is not None:
+            self.port = args.port
+        if "commandsDir" in args and args.commandsDir is not None:
+            self.commandsDir = args.commandsDir
 
 #----------------------------------------------------------------------------------------
 
@@ -351,7 +391,7 @@ class HS100(object):
                               "repeat": repeat,
                               "force": force,
                                "longitude": longitude,
-                               "latitude": latitude}.
+                               "latitude": latitude},
                              "set_overall_enable": overallEnable }})
         return self._processSimpleReply("anti_theft", "add_rule", reply)
 
@@ -381,7 +421,7 @@ class HS100(object):
                               "repeat": repeat,
                               "force": force,
                                "longitude": longitude,
-                               "latitude": latitude}.
+                               "latitude": latitude},
                              "set_overall_enable": overallEnable }})
         return self._processSimpleReply("anti_theft", "add_rule", reply)
 
@@ -560,7 +600,7 @@ def setupHS100(interface, deviceID, ssid, password,
 
 #----------------------------------------------------------------------------------------
 
-def handleSetup(args):
+def handleSetup(config, args):
     """Handle the setup subcommand"""
     return setupHS100(args.interface, args.deviceID, args.ssid, args.password,
                       timezoneIndex = args.timezone, alias = args.alias,
@@ -569,15 +609,29 @@ def handleSetup(args):
 
 #----------------------------------------------------------------------------------------
 
-def handleSimple(args):
+def handleSimple(config, args):
     """Handle a simple command which class a member function on the device."""
-    hs100 = HS100(args.address, args.port)
+    if config.address is None:
+        print >> sys.stderr, "Address is missing."""
+        return 2
+
+    hs100 = HS100(config.address, config.port)
     try:
         getattr(hs100, args.attr)()
         return 0
     except Exception, e:
-        print >> sys.stderr, "Command failed: " + e
+        print >> sys.stderr, "Command failed: ", e
         return 1
+
+#----------------------------------------------------------------------------------------
+
+def addSimpleCommand(subparsers, command, help, attr):
+    """Add a simple command to the given set of subparsers."""
+    onParser = subparsers.add_parser(command, help = help)
+    onParser.add_argument("address", default = None, nargs = "?",
+                          help = "the address of the device")
+    onParser.set_defaults(func = handleSimple)
+    onParser.set_defaults(attr = attr)
 
 #----------------------------------------------------------------------------------------
 
@@ -585,6 +639,9 @@ def main():
     """The main function."""
     parser = argparse.ArgumentParser("hs100",
                                      description = "TP-Link HS100/HS110 smart plug client")
+
+    parser.add_argument("-c", "--config", default = None, type = file,
+                        help = "the configuration file")
 
     parser.add_argument("-p", "--port", default = 9999, type = int,
                         help = "the port the smart plug listens on")
@@ -614,27 +671,23 @@ def main():
                              help = "the WLAN password for the given SSID")
     setupParser.set_defaults(func = handleSetup)
 
-    onParser = subparsers.add_parser("on",
-                                     help = "turn on the device's relay")
-    onParser.add_argument("address",
-                          help = "the address of the device")
-    onParser.set_defaults(func = handleSimple)
-    onParser.set_defaults(attr = "setRelayOn")
+    addSimpleCommand(subparsers, "on", "turn the device's relay on",
+                     "setRelayOn")
+    addSimpleCommand(subparsers, "off", "turn the device's relay off",
+                     "setRelayOff")
 
-    offParser = subparsers.add_parser("off",
-                                      help = "turn off the device's relay")
-    offParser.add_argument("address",
-                           help = "the address of the device")
-    offParser.set_defaults(func = handleSimple)
-    offParser.set_defaults(attr = "setRelayOff")
-
-    # parser.add_argument("address",
-    #                     help = "the IP address of the smart plug")
-    # parser.add_argument("command",
-    #                     help = "the command to send to the smart plug")
+    addSimpleCommand(subparsers, "ledon", "turn the device's LED on",
+                     "setLEDOn")
+    addSimpleCommand(subparsers, "ledoff", "turn the device's LED off",
+                     "setLEDOff")
 
     args = parser.parse_args()
-    return args.func(args)
+    config = Config()
+    if args.config is not None:
+        config.loadFrom(args.config)
+    config.setupFromArgs(args)
+
+    return args.func(config, args)
 
 if __name__ == "__main__":
     sys.exit(main())
