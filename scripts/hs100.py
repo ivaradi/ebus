@@ -27,6 +27,7 @@ class Config(object):
 
         self.requestsDir = None
         self.statusFile = None
+        self.pidFile = None
 
     def loadFrom(self, f):
         """Load the configuration from the given file."""
@@ -45,6 +46,9 @@ class Config(object):
 
             if configParser.has_option("daemon", "statusFile"):
                 self.statusFile = configParser.get("daemon", "statusFile")
+
+            if configParser.has_option("daemon", "pidFile"):
+                self.pidFile = configParser.get("daemon", "pidFile")
         except Exception, e:
             print >> sys.stderr, "Failed to read configuration:", e
 
@@ -58,6 +62,8 @@ class Config(object):
             self.requestsDir = args.requestsDir
         if "statusFile" in args and args.statusFile is not None:
             self.statusFile = args.statusFile
+        if "pidFile" in args and args.pidFile is not None:
+            self.pidFile = args.pidFile
 
 #----------------------------------------------------------------------------------------
 
@@ -665,6 +671,10 @@ class Daemon(pyinotify.ProcessEvent):
 
     def run(self):
         """Run the daemon's operation."""
+        if self._config.pidFile is not None:
+            with open(self._config.pidFile, "w") as f:
+                print >> f, os.getpid()
+
         self._updateStatus()
 
         self._inotifyThread.start()
@@ -810,6 +820,8 @@ def main():
                               help = "the directory containing the request files")
     daemonParser.add_argument("-s", "--statusFile", default = None,
                               help = "the file into which the status should be written")
+    daemonParser.add_argument("-p", "--pidFile", default = None,
+                              help = "the path of the PID file")
     daemonParser.add_argument("-f", "--foreground", action = "store_true",
                               help = "run in the foreground")
     daemonParser.set_defaults(func = handleDaemon)
