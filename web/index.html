@@ -511,6 +511,8 @@ updatePlug = function() {
         xhr = false;
     }
 
+    lastPlugUpdated = false;
+
     xhr.onreadystatechange = function()  {
         if (xhr.readyState==4 && xhr.status==200) {
             processPlugData(JSON.parse(xhr.responseText));
