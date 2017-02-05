@@ -11,6 +11,7 @@ import subprocess
 import daemon
 import pyinotify
 import threading
+import datetime
 import Queue
 from ConfigParser import SafeConfigParser
 
@@ -28,6 +29,7 @@ class Config(object):
         self.requestsDir = None
         self.statusFile = None
         self.pidFile = None
+        self.logFile = None
 
     def loadFrom(self, f):
         """Load the configuration from the given file."""
@@ -49,6 +51,9 @@ class Config(object):
 
             if configParser.has_option("daemon", "pidFile"):
                 self.pidFile = configParser.get("daemon", "pidFile")
+
+            if configParser.has_option("daemon", "logFile"):
+                self.logFile = configParser.get("daemon", "logFile")
         except Exception, e:
             print >> sys.stderr, "Failed to read configuration:", e
 
@@ -64,6 +69,8 @@ class Config(object):
             self.statusFile = args.statusFile
         if "pidFile" in args and args.pidFile is not None:
             self.pidFile = args.pidFile
+        if "logFile" in args and args.logFile is not None:
+            self.logFile = args.logFile
 
 #----------------------------------------------------------------------------------------
 
@@ -652,6 +659,27 @@ def addSimpleCommand(subparsers, command, help, attr):
 
 #----------------------------------------------------------------------------------------
 
+class LogWriter(object):
+    """Log writer to prepend a timestamp in from if each line."""
+    def __init__(self, path):
+        self._path = path
+        self._atLineBegin = True
+
+    def write(self, s):
+        """Write the given string."""
+        ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            with open(self._path, "at") as f:
+                for line in s.splitlines(True):
+                    if self._atLineBegin:
+                        f.write("[" + ts + "] ")
+                    f.write(line)
+                    self._atLineBegin = line.endswith("\n")
+        except:
+            pass
+
+#----------------------------------------------------------------------------------------
+
 class Daemon(pyinotify.ProcessEvent):
     """The daemon functionality handling class."""
     def __init__(self, config):
@@ -671,6 +699,9 @@ class Daemon(pyinotify.ProcessEvent):
 
     def run(self):
         """Run the daemon's operation."""
+        if self._config.logFile is not None:
+            sys.stdout = sys.stderr = LogWriter(self._config.logFile)
+
         if self._config.pidFile is not None:
             with open(self._config.pidFile, "w") as f:
                 print >> f, os.getpid()
@@ -822,6 +853,8 @@ def main():
                               help = "the file into which the status should be written")
     daemonParser.add_argument("-p", "--pidFile", default = None,
                               help = "the path of the PID file")
+    daemonParser.add_argument("-l", "--logFile", default = None,
+                              help = "the path of a log file")
     daemonParser.add_argument("-f", "--foreground", action = "store_true",
                               help = "run in the foreground")
     daemonParser.set_defaults(func = handleDaemon)
