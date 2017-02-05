@@ -108,6 +108,11 @@ class WebData
 {
 public:
     /**
+     * An indication of whether there is a signal or not.
+     */
+    TimedData<bool> signal = false;
+
+    /**
      * The actual error code.
      */
     TimedData<unsigned> errorCode = 0;
@@ -235,6 +240,11 @@ private:
     virtual void received(const Telegram& telegram);
 
     /**
+     * Process the signal change info.
+     */
+    virtual void signalChanged(bool hasSignal);
+
+    /**
      * Dump a telegram we don't decode.
      */
     void dumpTelegram(const Telegram& telegram);
@@ -296,6 +306,7 @@ void WebData::write()
     try {
         ofstream outFile(tmpPath);
         outFile << "{" << endl;
+        outFile << "    \"signal\":" << signal << "," << endl;
         outFile << "    \"errorCode\":" << errorCode << "," << endl;
         outFile << "    \"roomTemp\":" << roomTemp << "," << endl;
         outFile << "    \"outsideTemp\":" << outsideTemp << "," << endl;
@@ -340,6 +351,8 @@ string MainMessageHandler::address2String(symbol_t symbol)
 
 void MainMessageHandler::received(const Telegram& telegram)
 {
+    updateValue(webData.signal, true, currentMillis());
+    webData.write();
     try {
         if (telegram.primaryCommand==0x05 &&
             telegram.secondaryCommand==0x03)
@@ -368,6 +381,14 @@ void MainMessageHandler::received(const Telegram& telegram)
         Log::error("!!! Overrun while processing telegram:");
         dumpTelegram(telegram);
     }
+}
+
+//------------------------------------------------------------------------------
+
+void MainMessageHandler::signalChanged(bool hasSignal)
+{
+    updateValue(webData.signal, hasSignal, currentMillis());
+    webData.write();
 }
 
 //------------------------------------------------------------------------------

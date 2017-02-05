@@ -164,17 +164,17 @@
                 <tr>
                     <td class="heading" style="border-right: thick solid lightblue;">Melegvíz célhőmérséklet</td>
                     <td class="heading" style="border-right: thick solid lightblue;">Melegvíz hőmérséklet</td>
-                    <td class="heading"></td>
+                    <td class="heading">eBUS jel</td>
                 </tr>
                 <tr>
                     <td id="serviceWaterTargetTemp" class="data" style="border-right: thick solid lightblue;">23°C</td>
                     <td id="serviceWaterTemp" class="data" style="border-right: thick solid lightblue;">22°C</td>
-                    <td class="data"></td>
+                    <td id="signal" class="data">NINCS</td>
                 </tr>
                 <tr>
                     <td id="serviceWaterTargetTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
                     <td id="serviceWaterTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
-                    <td id="" class="updated"></td>
+                    <td id="signalUpdated" class="updated">1970-01-01 00:00:00</td>
                 </tr>
             </table>
         </td>
@@ -240,6 +240,8 @@ serviceWaterTargetTemp = document.getElementById("serviceWaterTargetTemp");
 serviceWaterTargetTempUpdated = document.getElementById("serviceWaterTargetTempUpdated");
 serviceWaterTemp = document.getElementById("serviceWaterTemp");
 serviceWaterTempUpdated = document.getElementById("serviceWaterTempUpdated");
+signal = document.getElementById("signal");
+signalUpdated = document.getElementById("signalUpdated");
 
 relayStateCB = document.getElementById("relayStateCB")
 relayState = document.getElementById("relayState")
@@ -426,6 +428,14 @@ processData = function(data) {
     setupUpdated(serviceWaterTargetTempUpdated, data.serviceWaterTargetTemp.updated, 60*1000);
     serviceWaterTemp.innerHTML = data.serviceWaterTemp.value.toFixed(0) + "°C";
     setupUpdated(serviceWaterTempUpdated, data.serviceWaterTemp.updated, 60*1000);
+    if (data.signal.value) {
+        signal.innerHTML = "VAN";
+        signal.style.background="lightgreen";
+    } else {
+        signal.innerHTML = "NINCS";
+        signal.style.background="red";
+    }
+    setupUpdated(signalUpdated, data.signal.updated, 60*1000);
 
     lastUpdated = true;
     lastData = data;

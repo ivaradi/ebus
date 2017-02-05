@@ -71,6 +71,11 @@ protected:
      */
     virtual void received(const Telegram& telegram);
 
+    /**
+     * Called when the signal status changes.
+     */
+    virtual void signalChanged(bool hasSignal);
+
 private:
     /**
      * Read a telegram from the given source.

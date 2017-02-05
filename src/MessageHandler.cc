@@ -35,11 +35,13 @@ void MessageHandler::run() throw (OSError)
     bool synPending = false;
     while(true) {
         if (!synPending) {
+            signalChanged(false);
             Log::info("Waiting for signal...");
             while(!busHandler.waitSignal(1000)) {
                 Log::info("Still no signal...");
             }
             Log::info("Signal detected");
+            signalChanged(true);
         }
 
         bool dumpData = false;
@@ -109,6 +111,12 @@ void MessageHandler::send(Telegram* telegram)
 //------------------------------------------------------------------------------
 
 void MessageHandler::received(const Telegram& /*telegram*/)
+{
+}
+
+//------------------------------------------------------------------------------
+
+void MessageHandler::signalChanged(bool /*hasSignal*/)
 {
 }
 
