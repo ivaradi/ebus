@@ -6,7 +6,12 @@ import sys
 import socket
 import json
 import time
+import os
 import subprocess
+import daemon
+import pyinotify
+import threading
+import Queue
 from ConfigParser import SafeConfigParser
 
 #----------------------------------------------------------------------------------------
@@ -20,7 +25,8 @@ class Config(object):
         self.address = None
         self.port = 9999
 
-        self.commandsDir = None
+        self.requestsDir = None
+        self.statusFile = None
 
     def loadFrom(self, f):
         """Load the configuration from the given file."""
@@ -34,8 +40,11 @@ class Config(object):
             if configParser.has_option("device", "port"):
                 self.port = configParser.getint("device", "port")
 
-            if configParser.has_option("daemon", "commandsDir"):
-                self.commandsDir = configParser.get("daemon", "commandsDir")
+            if configParser.has_option("daemon", "requestsDir"):
+                self.requestsDir = configParser.get("daemon", "requestsDir")
+
+            if configParser.has_option("daemon", "statusFile"):
+                self.statusFile = configParser.get("daemon", "statusFile")
         except Exception, e:
             print >> sys.stderr, "Failed to read configuration:", e
 
@@ -45,8 +54,10 @@ class Config(object):
             self.address = args.address
         if "port" in args and args.port is not None:
             self.port = args.port
-        if "commandsDir" in args and args.commandsDir is not None:
-            self.commandsDir = args.commandsDir
+        if "requestsDir" in args and args.requestsDir is not None:
+            self.requestsDir = args.requestsDir
+        if "statusFile" in args and args.statusFile is not None:
+            self.statusFile = args.statusFile
 
 #----------------------------------------------------------------------------------------
 
@@ -635,6 +646,116 @@ def addSimpleCommand(subparsers, command, help, attr):
 
 #----------------------------------------------------------------------------------------
 
+class Daemon(pyinotify.ProcessEvent):
+    """The daemon functionality handling class."""
+    def __init__(self, config):
+        """Construct the daemon."""
+        self._config = config
+        self._hs100 = HS100(config.address, config.port)
+
+        self._queue = Queue.Queue()
+
+        self._inotifyThread = threading.Thread(target = self._handleInotify)
+        self._inotifyThread.daemon = True
+
+        self._statusFile = config.statusFile
+        self._statusFileNew = config.statusFile + ".new"
+
+        self._lastRequestTS = 0
+
+    def run(self):
+        """Run the daemon's operation."""
+        self._updateStatus()
+
+        self._inotifyThread.start()
+
+        while True:
+            try:
+                item = self._queue.get(True, 10)
+                item()
+            except Queue.Empty:
+                self._updateStatus()
+
+    def _updateStatus(self):
+        """Update the status."""
+        try:
+            systemInfo = self._hs100.getSystemInfo()
+
+            t = long(time.time()*1000)
+
+            data = {"lastRequest": self._lastRequestTS,
+                    "updated": t,
+                    "relayOn": systemInfo["relay_state"]==1,
+                    "ledOn": systemInfo["led_off"]==0}
+            with open(self._statusFileNew, "wt") as f:
+                json.dump(data, f)
+            os.rename(self._statusFileNew, self._statusFile)
+        except Exception, e:
+            print >> sys.stderr, "Failed to update status:", e
+
+    def _handleInotify(self):
+        """Setup and run the inotify loop."""
+        wm = pyinotify.WatchManager()
+
+        mask = pyinotify.IN_MOVED_TO
+
+        notifier = pyinotify.Notifier(wm, self)
+
+        wm.add_watch(self._config.requestsDir, mask)
+
+        print "Runnig loop"
+        notifier.loop()
+
+    def process_IN_MOVED_TO(self, event):
+        self._queue.put(lambda: self._processRequest(event.pathname))
+
+    def _processRequest(self, path):
+        print "_processRequest", path
+        baseName = os.path.basename(path)
+        if not baseName.startswith("request."):
+            return
+
+        with open(path, "rt") as f:
+            data = json.load(f)
+
+        if data["relayOn"]:
+            self._hs100.setRelayOn()
+        else:
+            self._hs100.setRelayOff()
+
+        if data["ledOn"]:
+            self._hs100.setLEDOn()
+        else:
+            self._hs100.setLEDOff()
+
+        self._lastRequestTS = long(baseName[8:])
+
+        self._updateStatus()
+
+
+#----------------------------------------------------------------------------------------
+
+def handleDaemon(config, args):
+    """The main function for the daemon operation."""
+    if config.address is None:
+        print >> sys.stderr, "Address is missing."""
+        return 2
+    if config.requestsDir is None:
+        print >> sys.stderr, "The request file directory path is missing."""
+        return 3
+    if config.statusFile is None:
+        print >> sys.stderr, "The status file path is missing."""
+        return 4
+
+    d = Daemon(config)
+    if args.foreground:
+        d.run()
+    else:
+        with daemon.DaemonContext():
+            d.run()
+
+#----------------------------------------------------------------------------------------
+
 def main():
     """The main function."""
     parser = argparse.ArgumentParser("hs100",
@@ -680,6 +801,18 @@ def main():
                      "setLEDOn")
     addSimpleCommand(subparsers, "ledoff", "turn the device's LED off",
                      "setLEDOff")
+
+    daemonParser = subparsers.add_parser("daemon",
+                                         help = "run the program in daemon mode")
+    daemonParser.add_argument("-a", "--address", default = None,
+                              help = "the device's address")
+    daemonParser.add_argument("-r", "--requestsDir", default = None,
+                              help = "the directory containing the request files")
+    daemonParser.add_argument("-s", "--statusFile", default = None,
+                              help = "the file into which the status should be written")
+    daemonParser.add_argument("-f", "--foreground", action = "store_true",
+                              help = "run in the foreground")
+    daemonParser.set_defaults(func = handleDaemon)
 
     args = parser.parse_args()
     config = Config()
