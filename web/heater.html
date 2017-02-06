@@ -1,0 +1,526 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .heading {
+            padding-left: 10px;
+            padding-right: 10px;
+            background: deepskyblue;
+            color: white;
+            text-align: center;
+        }
+
+        .data {
+            font-size: 300%;
+            font-weight: bold;
+            padding-left: 10px;
+            padding-right: 10px;
+            text-align: center;
+            background: lightgreen;
+        }
+
+        .updated {
+            font-size: 50%;
+            padding-left: 10px;
+            padding-right: 10px;
+            text-align: right;
+            background: lightgreen;
+        }
+
+        .button {
+            display: inline-block;
+            font-size: 100%;
+            font-weight: bold;
+            text-align: center;
+            background: #117a65;
+            color: white;
+            border-radius: 16px;
+            border: none;
+            outline: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .button:hover {
+            background: #138d75;
+        }
+
+        .button:active {
+            background: #a2d9ce;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 200px;
+            height: 80px;
+        }
+
+        .switch input {
+            display: none;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1f618d;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 16px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 70%;
+            width: 30%;
+            left: 10%;
+            bottom: 15%;
+            background-color: #e74c3c;
+            -webkit-transition: .2s;
+            transition: .2s;
+            border-radius: 8px;
+        }
+
+        .sliderOn {
+        }
+
+        .sliderOn:before {
+            background-color: #58d68d;
+        }
+
+        input:checked + .slider {
+            background-color: #2980b9;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(166%);
+            -ms-transform: translateX(166%);
+            transform: translateX(166%);
+        }
+
+
+    </style>
+    <title>Otthon</title>
+</head>
+
+<body>
+<div align="center">
+
+<table>
+    </tr>
+        <td>
+            <table style="border-spacing: 0px; border: thick solid lightblue; padding: 0px" width="100%">
+                <tr>
+                    <td class="heading" style="border-right: thick solid lightblue;">Hibakód</td>
+                    <td class="heading" colspan="2">Dátum, idő</td>
+                </tr>
+                <tr>
+                    <td id="errorCode" class="data" style="border-right: thick solid lightblue; ">000</td>
+                    <td id="lastTime" class="data" style="font-size: 200%" colspan="2">2016-07-16 15:00:10</td>
+                </tr>
+                <tr>
+                    <td id="errorCodeUpdated" class="updated" style="border-right: thick solid lightblue; ">1970-01-01 00:00:00</td>
+                    <td id="lastTimeUpdated" class="updated" colspan="2">1970-01-01 00:00:00</td>
+                </tr>
+                <tr>
+                    <td class="heading" style="border-right: thick solid lightblue;">Külső hőmérséklet</td>
+                    <td class="heading" style="border-right: thick solid lightblue;">Külső átlaghőm.</td>
+                    <td class="heading">Szoba hőmérséklet</td>
+                </tr>
+                <tr>
+                    <td id="outsideTemp" class="data" style="border-right: thick solid lightblue;">23°C</td>
+                    <td id="outsideTempAvg" class="data" style="border-right: thick solid lightblue;">22.0°C</td>
+                    <td id="roomTemp" class="data">18.2°C</td>
+                </tr>
+                <tr>
+                    <td id="outsideTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="outsideTempAvgUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="roomTempUpdated" class="updated">1970-01-01 00:00:00</td>
+                </tr>
+                <tr>
+                    <td class="heading" style="border-right: thick solid lightblue;">Fűtés célhőmérséklet</td>
+                    <td class="heading" style="border-right: thick solid lightblue;">Vízhőmérséklet</td>
+                    <td class="heading">Visszatérő vízhőm.</td>
+                </tr>
+                <tr>
+                    <td id="boilerTargetTemp" class="data" style="border-right: thick solid lightblue;">23°C</td>
+                    <td id="boilerTemp" class="data" style="border-right: thick solid lightblue;">22.0°C</td>
+                    <td id="returnWaterTemp" class="data">18.2°C</td>
+                </tr>
+                <tr>
+                    <td id="boilerTargetTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="boilerTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="returnWaterTempUpdated" class="updated">1970-01-01 00:00:00</td>
+                </tr>
+                <tr>
+                    <td class="heading" style="border-right: thick solid lightblue;">Melegvíz célhőmérséklet</td>
+                    <td class="heading" style="border-right: thick solid lightblue;">Melegvíz hőmérséklet</td>
+                    <td class="heading">eBUS jel</td>
+                </tr>
+                <tr>
+                    <td id="serviceWaterTargetTemp" class="data" style="border-right: thick solid lightblue;">23°C</td>
+                    <td id="serviceWaterTemp" class="data" style="border-right: thick solid lightblue;">22°C</td>
+                    <td id="signal" class="data">NINCS</td>
+                </tr>
+                <tr>
+                    <td id="serviceWaterTargetTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="serviceWaterTempUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="signalUpdated" class="updated">1970-01-01 00:00:00</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td align="center"><br/><h3>Konnektor</h3></td>
+    </tr>
+    <tr>
+        <td>
+            <table style="border-spacing: 0px; border: thick solid lightblue; padding: 0px;" width="100%">
+                <tr>
+                    <td class="heading" style="border-right: thick solid lightblue;" width="50%">Relé</td>
+                    <td class="heading" width="50%">LED</td>
+                </tr>
+                <tr height="100px">
+                    <td class="data" style="border-right: thick solid lightblue;">
+                        <label class="switch">
+                            <input id="relayStateCB" type="checkbox" onchange="confirmRelayCB()"></input>
+                            <div id="relayState" class="slider"></div>
+                        </label>
+                    </td>
+                    <td class="data">
+                        <label class="switch">
+                            <input id="ledStateCB" type="checkbox" onchange="sendPlugRequest()"></input>
+                            <div id="ledState" class="slider"></div>
+                        </label>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="relayStateUpdated" class="updated" style="border-right: thick solid lightblue;">1970-01-01 00:00:00</td>
+                    <td id="ledStateUpdated" class="updated">1970-01-01 00:00:00</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+</div>
+
+</body>
+<script>
+
+errorCode = document.getElementById("errorCode");
+errorCodeUpdated = document.getElementById("errorCodeUpdated");
+lastTime = document.getElementById("lastTime");
+lastTimeUpdated = document.getElementById("lastTimeUpdated");
+
+outsideTemp = document.getElementById("outsideTemp");
+outsideTempUpdated = document.getElementById("outsideTempUpdated");
+outsideTempAvg = document.getElementById("outsideTempAvg");
+outsideTempAvgUpdated = document.getElementById("outsideTempAvgUpdated");
+roomTemp = document.getElementById("roomTemp");
+roomTempUpdated = document.getElementById("roomTempUpdated");
+
+boilerTargetTemp = document.getElementById("boilerTargetTemp");
+boilerTargetTempUpdated = document.getElementById("boilerTargetTempUpdated");
+boilerTemp = document.getElementById("boilerTemp");
+boilerTempUpdated = document.getElementById("boilerTempUpdated");
+returnWaterTemp = document.getElementById("returnWaterTemp");
+returnWaterTempUpdated = document.getElementById("returnWaterTempUpdated");
+
+serviceWaterTargetTemp = document.getElementById("serviceWaterTargetTemp");
+serviceWaterTargetTempUpdated = document.getElementById("serviceWaterTargetTempUpdated");
+serviceWaterTemp = document.getElementById("serviceWaterTemp");
+serviceWaterTempUpdated = document.getElementById("serviceWaterTempUpdated");
+signal = document.getElementById("signal");
+signalUpdated = document.getElementById("signalUpdated");
+
+relayStateCB = document.getElementById("relayStateCB")
+relayState = document.getElementById("relayState")
+relayStateUpdated = document.getElementById("relayStateUpdated")
+
+ledStateCB = document.getElementById("ledStateCB")
+ledState = document.getElementById("ledState")
+ledStateUpdated = document.getElementById("ledStateUpdated")
+
+lastData = null;
+lastUpdated = false;
+
+lastPlugData = null;
+lastPlugUpdated = false;
+lastPlugRequestTimestamp = 0;
+
+var colorData = [
+    {temp: 22, red: 144, green: 238, blue: 144 },
+    {temp: 25, red: 255, green: 255, blue: 128 },
+    {temp: 30, red: 180, green: 0, blue: 0 }
+];
+
+sendPlugRequest = function() {
+    var xhr;
+    try {
+        xhr = new  XMLHttpRequest();
+    } catch (e) {
+        xhr = false;
+    }
+
+    var timestamp = new Date().valueOf();
+    var relayOn = relayStateCB.checked;
+    var ledOn = ledStateCB.checked;
+
+    xhr.onreadystatechange = function()  {
+        if (xhr.readyState==4) {
+            if (xhr.status==200) {
+                lastPlugRequestTimestamp = timestamp;
+                setTimeout("updatePlug()", 1000);
+                setTimeout("updatePlug()", 2000);
+            } else {
+                setTimeout("sendPlugRequest()", 1000);
+            }
+        }
+    }
+
+    xhr.open("GET",
+             "store_request.php?ts=" + timestamp +
+             "&relayOn=" + relayOn + "&ledOn=" + ledOn,
+             true);
+    xhr.send(null);
+}
+
+confirmRelayCB = function() {
+    var reply = null;
+    if (relayStateCB.checked) {
+        reply = confirm("Biztosan BE akarod kapcsolni a kazánt?")
+    } else {
+        reply = confirm("Biztosan KI akarod kapcsolni a kazánt?")
+    }
+    if (reply) {
+        sendPlugRequest();
+    } else {
+        relayStateCB.checked = !relayStateCB.checked;
+    }
+}
+
+color2str = function(red, green, blue) {
+    return "rgb(" + red.toFixed() + ", " + green.toFixed() + ", " + blue.toFixed() + ")";
+}
+
+temp2color = function(temp) {
+    beforeData = null;
+    afterData = null;
+
+    for(var i = 0; i<colorData.length; i++) {
+        cd = colorData[i]
+        if (cd.temp>=temp) {
+            afterData = cd;
+            break;
+        } else {
+            beforeData = cd;
+        }
+    }
+
+    if (afterData===null) {
+        if (beforeData===null) {
+            return color2str(0, 0, 0);
+        } else {
+            return color2str(beforeData.red, beforeData.green, beforeData.blue);
+        }
+    } else if (beforeData===null) {
+        return color2str(afterData.red, afterData.green, afterData.blue);
+    } else {
+        var rate = (temp - beforeData.temp) /
+            (afterData.temp - beforeData.temp);
+        var red = beforeData.red + rate * (afterData.red - beforeData.red);
+        var green = beforeData.green + rate * (afterData.green - beforeData.green);
+        var blue = beforeData.blue + rate * (afterData.blue - beforeData.blue);
+        return color2str(red, green, blue)
+    }
+}
+
+toNDigitString = function(value, numDigits) {
+    var str = value + "";
+    while(str.length<numDigits) str = "0" + str;
+    return str;
+}
+
+setupUpdated = function(element, timestamp, tooOldTimeout) {
+    var updated = new Date(timestamp)
+
+    var month = toNDigitString(updated.getMonth()+1, 2);
+    var day = toNDigitString(updated.getDate(), 2);
+    var hour = toNDigitString(updated.getHours(), 2);
+    var minute = toNDigitString(updated.getMinutes(), 2);
+    var second = toNDigitString(updated.getSeconds(), 2);
+
+    dateStr = updated.getFullYear() + "-" + month + "-" + day;
+    dateStr += " " + hour + ":" + minute + ":" + second;
+
+    element.innerHTML = dateStr;
+
+    var now = new Date().getTime();
+
+    if ((timestamp + tooOldTimeout) < now ) {
+        element.style.background = "red";
+    } else {
+        element.style.background = "lightgreen";
+    }
+}
+
+processData = function(data) {
+    error = data.errorCode.value + "";
+    while (error.length < 3) error = "0" + error;
+    errorCode.innerHTML = error;
+    if (data.errorCode.value==0) {
+        errorCode.style.background = "lightgreen";
+    } else {
+        errorCode.style.background = "red";
+    }
+    setupUpdated(errorCodeUpdated, data.errorCode.updated, 60*1000);
+
+    lastTime.innerHTML = data.lastTime.value;
+    year = parseInt(data.lastTime.value.slice(0, 4));
+    month = parseInt(data.lastTime.value.slice(5, 7));
+    day = parseInt(data.lastTime.value.slice(8, 10));
+    hour = parseInt(data.lastTime.value.slice(11, 13));
+    minute = parseInt(data.lastTime.value.slice(14, 16));
+    second = parseInt(data.lastTime.value.slice(17, 19));
+
+    nowT = new Date().getTime();
+    lastT = new Date(year, month-1, day, hour, minute, second, 0).getTime();
+    if ((nowT-lastT)>(5*60*1000)) {
+        lastTime.style.background="red";
+    } else {
+        lastTime.style.background="lightgreen";
+    }
+    setupUpdated(lastTimeUpdated, data.lastTime.updated, 120*1000);
+
+
+    outsideTemp.innerHTML = data.outsideTemp.value.toFixed(0) + "°C";
+    outsideTemp.style.background = temp2color(data.outsideTemp.value);
+    setupUpdated(outsideTempUpdated, data.outsideTemp.updated, 60*1000);
+
+    outsideTempAvg.innerHTML = data.outsideTempAvg.value.toFixed(1) + "°C";
+    outsideTempAvg.style.background = temp2color(data.outsideTempAvg.value);
+    setupUpdated(outsideTempAvgUpdated, data.outsideTempAvg.updated, 60*1000);
+
+    roomTemp.innerHTML = data.roomTemp.value.toFixed(1) + "°C";
+    roomTemp.style.background = temp2color(data.roomTemp.value);
+    setupUpdated(roomTempUpdated, data.roomTemp.updated, 15*60*1000);
+
+    boilerTargetTemp.innerHTML = data.boilerTargetTemp.value.toFixed(0) + "°C";
+    setupUpdated(boilerTargetTempUpdated, data.boilerTargetTemp.updated, 60*1000);
+
+    boilerTemp.innerHTML = data.boilerTemp.value.toFixed(0) + "°C";
+    setupUpdated(boilerTempUpdated, data.boilerTemp.updated, 60*1000);
+
+    returnWaterTemp.innerHTML = data.returnWaterTemp.value.toFixed(0) + "°C";
+    setupUpdated(returnWaterTempUpdated, data.returnWaterTemp.updated, 60*1000);
+
+    serviceWaterTargetTemp.innerHTML = data.serviceWaterTargetTemp.value.toFixed(0) + "°C";
+    setupUpdated(serviceWaterTargetTempUpdated, data.serviceWaterTargetTemp.updated, 60*1000);
+    serviceWaterTemp.innerHTML = data.serviceWaterTemp.value.toFixed(0) + "°C";
+    setupUpdated(serviceWaterTempUpdated, data.serviceWaterTemp.updated, 60*1000);
+    if (data.signal.value) {
+        signal.innerHTML = "VAN";
+        signal.style.background="lightgreen";
+    } else {
+        signal.innerHTML = "NINCS";
+        signal.style.background="red";
+    }
+    setupUpdated(signalUpdated, data.signal.updated, 60*1000);
+
+    lastUpdated = true;
+    lastData = data;
+}
+
+update = function() {
+    if (!lastUpdated && lastData!=null) {
+        processData(lastData);
+    }
+
+    var xhr;
+    try {
+        xhr = new  XMLHttpRequest();
+    } catch (e) {
+        xhr = false;
+    }
+
+    lastUpdated = false;
+
+    xhr.onreadystatechange = function()  {
+        if (xhr.readyState==4 && xhr.status==200) {
+            processData(JSON.parse(xhr.responseText));
+        }
+    }
+
+    xhr.open("GET", "data/ebus.json", true);
+    xhr.send(null);
+
+    updatePlug();
+
+    setTimeout("update()", 5000);
+}
+
+processPlugData = function(data) {
+    var now = new Date().valueOf();
+
+    if (lastPlugRequestTimestamp==0 ||
+        data.lastRequest>=lastPlugRequestTimestamp ||
+        data.updated >= (lastPlugRequestTimestamp+10000) ||
+        now >= (lastPlugRequestTimestamp + 30000)) {
+        if (data.relayOn) {
+            relayState.classList.add("sliderOn");
+            relayStateCB.checked = true;
+        } else {
+            relayState.classList.remove("sliderOn");
+            relayStateCB.checked = false;
+        }
+        setupUpdated(relayStateUpdated, data.updated, 60*1000);
+
+        if (data.ledOn) {
+            ledState.classList.add("sliderOn");
+            ledStateCB.checked = true;
+        } else {
+            ledState.classList.remove("sliderOn");
+            ledStateCB.checked = false;
+        }
+        setupUpdated(ledStateUpdated, data.updated, 60*1000);
+
+        lastPlugUpdated = true;
+        lastPlugData = data;
+    }
+}
+
+updatePlug = function() {
+    if (!lastPlugUpdated && lastPlugData!=null) {
+        processPlugData(lastPlugData);
+    }
+
+    var xhr;
+    try {
+        xhr = new  XMLHttpRequest();
+    } catch (e) {
+        xhr = false;
+    }
+
+    lastPlugUpdated = false;
+
+    xhr.onreadystatechange = function()  {
+        if (xhr.readyState==4 && xhr.status==200) {
+            processPlugData(JSON.parse(xhr.responseText));
+        }
+    }
+
+    xhr.open("GET", "data/hs100.json", true);
+    xhr.send(null);
+}
+
+update();
+
+</script>
+</html>
