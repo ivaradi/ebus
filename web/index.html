@@ -1,73 +1,77 @@
 <html>
 
-<style>
-div.buttons {
-    float: left;
-    width: 100%;
-    background-color: #f1f1f1;
-    overflow: hidden;
-    position: relative;
-    #left: -100%;
-    text-align: left;
-    border: 1px solid #ccc;
-}
+<head>
+    <meta charset="UTF-8">
+    <style>
+    div.buttons {
+        float: left;
+        width: 100%;
+        background-color: #f1f1f1;
+        overflow: hidden;
+        position: relative;
+        #left: -100%;
+        text-align: left;
+        border: 1px solid #ccc;
+    }
 
-ul.tab {
-    clear: left;
-    float:left;
-    list-style:none;
-    margin:0;
-    padding:0;
-    position:relative;
-    left:50%;
-    text-align:center;
-}
+    ul.tab {
+        clear: left;
+        float:left;
+        list-style:none;
+        margin:0;
+        padding:0;
+        position:relative;
+        left:50%;
+        text-align:center;
+    }
 
-/* Float the list items side by side */
-ul.tab li {
-    display:block;
-    float:left;
-    list-style:none;
-    margin:0;
-    padding:0;
-    position:relative;
-    right:50%;
-}
+    /* Float the list items side by side */
+    ul.tab li {
+        display:block;
+        float:left;
+        list-style:none;
+        margin:0;
+        padding:0;
+        position:relative;
+        right:50%;
+    }
 
-/* Style the links inside the list items */
-ul.tab li a {
-    display:block;
-    color: black;
-    padding: 14px 16px;
-    text-decoration: none;
-    padding: 14px 16px;
-    font-size: 24px;
-    transition: 0.3s;
-}
+    /* Style the links inside the list items */
+    ul.tab li a {
+        display:block;
+        color: black;
+        padding: 14px 16px;
+        text-decoration: none;
+        padding: 14px 16px;
+        font-size: 24px;
+        transition: 0.3s;
+    }
 
-/* Create an active/current tablink class */
-ul.tab li a:focus, .active {
-    background-color: #ccc;
-}
+    /* Create an active/current tablink class */
+    ul.tab li a:focus, .active {
+        background-color: #ccc;
+    }
 
-/* Style the tab content */
-.tabcontent {
-    display: block;
-    padding: 6px 12px;
-    -webkit-animation: fadeEffect 1s;
-    animation: fadeEffect 1s;
-}
+    /* Style the tab content */
+    .tabcontent {
+        display: block;
+        padding: 6px 12px;
+        -webkit-animation: fadeEffect 1s;
+        animation: fadeEffect 1s;
+    }
 
-@-webkit-keyframes fadeEffect {
-    from {opacity: 0;}
-    to {opacity: 1;}
-}
+    @-webkit-keyframes fadeEffect {
+        from {opacity: 0;}
+        to {opacity: 1;}
+    }
 
-@keyframes fadeEffect {
-    from {opacity: 0;}
-    to {opacity: 1;}
-}
-</style>
+    @keyframes fadeEffect {
+        from {opacity: 0;}
+        to {opacity: 1;}
+    }
+    </style>
+    <title>Otthon</title>
+</head>
 <body>
 
 <div class="buttons">
