@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #-*- encoding: utf-8 -*-
 
 import argparse
@@ -12,8 +12,8 @@ import daemon
 import pyinotify
 import threading
 import datetime
-import Queue
-from ConfigParser import SafeConfigParser
+import queue
+from configparser import ConfigParser
 
 #----------------------------------------------------------------------------------------
 
@@ -34,8 +34,8 @@ class Config(object):
     def loadFrom(self, f):
         """Load the configuration from the given file."""
         try:
-            configParser = SafeConfigParser()
-            configParser.readfp(f)
+            configParser = ConfigParser()
+            configParser.read_file(f)
 
             if configParser.has_option("device", "address"):
                self.address = configParser.get("device", "address")
@@ -54,8 +54,8 @@ class Config(object):
 
             if configParser.has_option("daemon", "logFile"):
                 self.logFile = configParser.get("daemon", "logFile")
-        except Exception, e:
-            print >> sys.stderr, "Failed to read configuration:", e
+        except Exception as e:
+            print("Failed to read configuration:", e, file=sys.stderr)
 
     def setupFromArgs(self, args):
         """Set the values from the given arguments."""
@@ -88,12 +88,14 @@ class HS100(object):
     @staticmethod
     def encrypt(msg):
         """Encrypt the given message."""
-        result = "\0" * 4
+        msg = bytes(msg, "utf-8")
+
+        result = bytearray(b"\0" * 4)
 
         key = 171
         for c in msg:
-            a = ord(c) ^ key
-            result += chr(a)
+            a = c ^ key
+            result.append(a)
             key = a
 
         return result
@@ -105,9 +107,9 @@ class HS100(object):
 
         key = 171
         for c in msg[4:]:
-            a = key ^ ord(c)
+            a = key ^ c
             result += chr(a)
-            key = ord(c)
+            key = c
 
         return result
 
@@ -546,13 +548,13 @@ def setupHS100(interface, deviceID, ssid, password,
                longitude = None, latitude = None,
                cloudServer = None, port = 9999):
     """Setup the smart plug from factory state."""
-    print "Bringing " + interface + " up"
+    print("Bringing " + interface + " up")
     subprocess.call(["sudo", "ifconfig", interface, "down"])
     subprocess.call(["sudo", "ifconfig", interface, "0.0.0.0"])
     subprocess.call(["sudo", "ifconfig", interface, "up"])
 
     deviceSSID = "TP-LINK_Smart Plug_" + deviceID
-    print "Looking for WLAN network " + deviceSSID + "..."
+    print("Looking for WLAN network " + deviceSSID + "...")
     found = False
     while not found:
         process = subprocess.Popen(["sudo", "iwlist", interface, "scan"],
@@ -565,10 +567,10 @@ def setupHS100(interface, deviceID, ssid, password,
                 found = True
                 break
         if not found:
-            print "  not found, sleeping..."
+            print("  not found, sleeping...")
             time.sleep(3)
 
-    print "Found network, connecting..."
+    print("Found network, connecting...")
     configured = False
     while not configured:
         retval = subprocess.call(["sudo", "iwconfig", interface,
@@ -576,7 +578,7 @@ def setupHS100(interface, deviceID, ssid, password,
         if retval==0:
             configured = True
         else:
-            print "  failed to configure SSID, sleeping before trying again..."
+            print("  failed to configure SSID, sleeping before trying again...")
             time.sleep(3)
 
     time.sleep(10)
@@ -587,36 +589,36 @@ def setupHS100(interface, deviceID, ssid, password,
         if retval==0:
             connected = True
         else:
-            print "  DHCP client failed, sleeping before trying again..."
+            print("  DHCP client failed, sleeping before trying again...")
             time.sleep(3)
 
     isOK = True
-    print "Connected, configuring device..."
+    print("Connected, configuring device...")
     try:
         hs100 = HS100("192.168.0.1", port)
         if timezoneIndex is not None:
-            print "  setting timezone..."
+            print("  setting timezone...")
             hs100.setTimezone(timezoneIndex)
         if alias is not None:
-            print "  setting alias to '%s'..." % (alias,)
+            print("  setting alias to '%s'..." % (alias,))
             hs100.setAlias("Kazán")
         if longitude is not None and latitude is not None:
-            print "  setting location to lon=%.4f, lat=%.4f..." % (longitude,
-                                                                   latitude)
+            print("  setting location to lon=%.4f, lat=%.4f..." % (longitude,
+                                                                   latitude))
             hs100.setLocation(longitude, latitude)
         if cloudServer is not None:
-            print "  setting the cloud server to %s..." % (cloudServer,)
+            print("  setting the cloud server to %s..." % (cloudServer,))
             hs100.setCloudServerURL(cloudServer)
 
-        print "  configuring SSID %s..." % (ssid,)
+        print("  configuring SSID %s..." % (ssid,))
         hs100.setWLAN(ssid, password)
 
-        print "Device configured."
-    except Exception, e:
+        print("Device configured.")
+    except Exception as e:
         isOK = False
-        print >> sys.stderr, "Failed to configure device: %s" % (e,)
+        print("Failed to configure device: %s" % (e,), file=sys.stderr)
 
-    print "Bringing " + interface + " down"
+    print("Bringing " + interface + " down")
     subprocess.call(["sudo", "ifconfig", interface, "0.0.0.0"])
     subprocess.call(["sudo", "ifconfig", interface, "down"])
 
@@ -636,15 +638,15 @@ def handleSetup(config, args):
 def handleSimple(config, args):
     """Handle a simple command which class a member function on the device."""
     if config.address is None:
-        print >> sys.stderr, "Address is missing."""
+        print("Address is missing.""", file=sys.stderr)
         return 2
 
     hs100 = HS100(config.address, config.port)
     try:
         getattr(hs100, args.attr)()
         return 0
-    except Exception, e:
-        print >> sys.stderr, "Command failed: ", e
+    except Exception as e:
+        print("Command failed: ", e, file=sys.stderr)
         return 1
 
 #----------------------------------------------------------------------------------------
@@ -678,6 +680,9 @@ class LogWriter(object):
         except:
             pass
 
+    def flush(self):
+        pass
+
 #----------------------------------------------------------------------------------------
 
 class Daemon(pyinotify.ProcessEvent):
@@ -687,7 +692,7 @@ class Daemon(pyinotify.ProcessEvent):
         self._config = config
         self._hs100 = HS100(config.address, config.port)
 
-        self._queue = Queue.Queue()
+        self._queue = queue.Queue()
 
         self._inotifyThread = threading.Thread(target = self._handleInotify)
         self._inotifyThread.daemon = True
@@ -704,7 +709,7 @@ class Daemon(pyinotify.ProcessEvent):
 
         if self._config.pidFile is not None:
             with open(self._config.pidFile, "w") as f:
-                print >> f, os.getpid()
+                print(os.getpid(), file=f)
 
         self._updateStatus()
 
@@ -714,7 +719,7 @@ class Daemon(pyinotify.ProcessEvent):
             try:
                 item = self._queue.get(True, 10)
                 item()
-            except Queue.Empty:
+            except queue.Empty:
                 self._updateStatus()
 
     def _updateStatus(self):
@@ -722,7 +727,7 @@ class Daemon(pyinotify.ProcessEvent):
         try:
             systemInfo = self._hs100.getSystemInfo()
 
-            t = long(time.time()*1000)
+            t = int(time.time()*1000)
 
             data = {"lastRequest": self._lastRequestTS,
                     "updated": t,
@@ -731,8 +736,8 @@ class Daemon(pyinotify.ProcessEvent):
             with open(self._statusFileNew, "wt") as f:
                 json.dump(data, f)
             os.rename(self._statusFileNew, self._statusFile)
-        except Exception, e:
-            print >> sys.stderr, "Failed to update status:", e
+        except Exception as e:
+            print("Failed to update status:", e, file=sys.stderr)
 
     def _handleInotify(self):
         """Setup and run the inotify loop."""
@@ -744,14 +749,14 @@ class Daemon(pyinotify.ProcessEvent):
 
         wm.add_watch(self._config.requestsDir, mask)
 
-        print "Runnig loop"
+        print("Runnig loop")
         notifier.loop()
 
     def process_IN_MOVED_TO(self, event):
         self._queue.put(lambda: self._processRequest(event.pathname))
 
     def _processRequest(self, path):
-        print "_processRequest", path
+        print("_processRequest", path)
         baseName = os.path.basename(path)
         if not baseName.startswith("request."):
             return
@@ -769,7 +774,7 @@ class Daemon(pyinotify.ProcessEvent):
         else:
             self._hs100.setLEDOff()
 
-        self._lastRequestTS = long(baseName[8:])
+        self._lastRequestTS = int(baseName[8:])
 
         self._updateStatus()
 
@@ -779,13 +784,13 @@ class Daemon(pyinotify.ProcessEvent):
 def handleDaemon(config, args):
     """The main function for the daemon operation."""
     if config.address is None:
-        print >> sys.stderr, "Address is missing."""
+        print("Address is missing.""", file=sys.stderr)
         return 2
     if config.requestsDir is None:
-        print >> sys.stderr, "The request file directory path is missing."""
+        print("The request file directory path is missing.""", file=sys.stderr)
         return 3
     if config.statusFile is None:
-        print >> sys.stderr, "The status file path is missing."""
+        print("The status file path is missing.""", file=sys.stderr)
         return 4
 
     d = Daemon(config)
@@ -802,7 +807,8 @@ def main():
     parser = argparse.ArgumentParser("hs100",
                                      description = "TP-Link HS100/HS110 smart plug client")
 
-    parser.add_argument("-c", "--config", default = None, type = file,
+    parser.add_argument("-c", "--config", default = None,
+                        type = argparse.FileType('r'),
                         help = "the configuration file")
 
     parser.add_argument("-p", "--port", default = 9999, type = int,
