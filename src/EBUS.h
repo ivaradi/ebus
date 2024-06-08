@@ -23,6 +23,8 @@
 #include "OSError.h"
 #include "TimeoutException.h"
 
+#include <inttypes.h>
+
 //------------------------------------------------------------------------------
 
 #define LOG_BYTES_RECEIVED 0
