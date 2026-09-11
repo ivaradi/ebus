@@ -167,7 +167,10 @@ bool EBUS::setupPort(const std::string& devicePath) throw(OSError)
     struct termios settings;
     memset(&settings, 0, sizeof(settings));
 
-    settings.c_cflag |= (B2400 | CS8 | CLOCAL | CREAD);
+    cfsetispeed(&settings, B2400);
+    cfsetospeed(&settings, B2400);
+
+    settings.c_cflag |= (CS8 | CLOCAL | CREAD);
     settings.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
     settings.c_iflag |= IGNPAR;
     settings.c_oflag &= ~OPOST;
